@@ -19,6 +19,22 @@
         AUDIO: {
             SUCCESS: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBzCMz+8=',
             VOLUME: 0.3
+        },
+        SHEETS: {
+            // Google Apps Script Web App URL
+            get GAS_URL() {
+                return window.QR_SCANNER_CONFIG?.GOOGLE_APPS_SCRIPT_URL || '';
+            },
+            // Google Sheets API設定（フォールバック用）
+            get SPREADSHEET_ID() {
+                return window.QR_SCANNER_CONFIG?.GOOGLE_SHEETS?.SPREADSHEET_ID || '1HVGYDKFOIkhM26Hk73X4AeO-X__hQmKXB6eln3vxeDQ';
+            },
+            get SHEET_NAME() {
+                return window.QR_SCANNER_CONFIG?.GOOGLE_SHEETS?.SHEET_NAME || 'チケット管理';
+            },
+            get API_KEY() {
+                return window.QR_SCANNER_CONFIG?.GOOGLE_SHEETS?.API_KEY || 'YOUR_GOOGLE_API_KEY_HERE';
+            }
         }
     };
 
@@ -56,8 +72,191 @@
             amount: 32000,
             purchaseDate: '2024-09-03 16:45',
             status: 'paid'
+        },
+        // チケット番号のテストデータ
+        'TKT-20240901-001': {
+            name: '山田 花子',
+            email: 'yamada.hanako@example.com',
+            phone: '080-1111-2222',
+            event: 'テストイベント',
+            ticketType: 'テスト席',
+            quantity: 1,
+            amount: 5000,
+            purchaseDate: '2024-09-04 10:00',
+            status: 'paid'
         }
     };
+
+    // Google Sheets API関連の関数
+    class SheetsAPI {
+        static async getTicketData(ticketNumber) {
+            // 1. Google Apps Scriptを優先的に使用
+            if (window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+                try {
+                    console.log('Using Google Apps Script API...');
+                    const response = await fetch(`${CONFIG.SHEETS.GAS_URL}?ticket_number=${encodeURIComponent(ticketNumber)}`);
+                    const result = await response.json();
+                    
+                    if (result.success && result.data) {
+                        console.log('✅ Data retrieved from Google Apps Script');
+                        return result.data;
+                    } else {
+                        console.warn('Ticket not found in Google Apps Script:', result.error);
+                        return null;
+                    }
+                } catch (error) {
+                    console.warn('Google Apps Script API failed, trying direct API:', error);
+                    // フォールバックで直接APIを試行
+                }
+            }
+            
+            // 2. Google Sheets API（フォールバック）
+            try {
+                if (!CONFIG.SHEETS.API_KEY || CONFIG.SHEETS.API_KEY === 'YOUR_GOOGLE_API_KEY_HERE') {
+                    console.warn('Google Sheets API key not configured, using mock data');
+                    return null;
+                }
+                
+                console.log('Using Google Sheets API...');
+                const range = `${CONFIG.SHEETS.SHEET_NAME}!A:M`;
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEETS.SPREADSHEET_ID}/values/${range}?key=${CONFIG.SHEETS.API_KEY}`;
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    console.warn(`Google Sheets API error: ${response.status}, falling back to mock data`);
+                    throw new Error(`Google Sheets API error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const rows = data.values || [];
+                
+                if (rows.length === 0) {
+                    return null;
+                }
+                
+                // ヘッダー行を取得
+                const headers = rows[0];
+                
+                // チケット番号で検索
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    const ticketNumberIndex = headers.indexOf('チケット番号');
+                    
+                    if (ticketNumberIndex !== -1 && row[ticketNumberIndex] === ticketNumber) {
+                        return this.parseRowData(headers, row);
+                    }
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('All Google APIs failed:', error);
+                throw error;
+            }
+        }
+        
+        static parseRowData(headers, row) {
+            const data = {};
+            
+            // ヘッダーとデータをマッピング
+            headers.forEach((header, index) => {
+                data[header] = row[index] || '';
+            });
+            
+            // デバッグ用：データの内容を確認
+            console.log('Raw data from sheet:', data);
+            console.log('支払い状況:', data['支払い状況']);
+            console.log('入場状況:', data['入場状況']);
+            
+            // フォーマットして返却
+            return {
+                name: data['顧客名'] || '',
+                email: data['メールアドレス'] || '',
+                phone: data['電話番号'] || '',
+                event: data['イベント名'] || '',
+                ticketType: data['チケット種別'] || '',
+                ticketNumber: data['チケット番号'] || '',
+                mainTicketNumber: data['メインチケット番号'] || '',
+                amount: this.parseAmount(data['1枚価格']),
+                purchaseDate: data['購入日時'] || '',
+                paymentStatus: data['支払い状況'] || data['支払い完了'] || '',
+                entryStatus: data['入場状況'] || '未入場',
+                sessionId: data['session_id'] || ''
+            };
+        }
+        
+        static parseAmount(amountStr) {
+            if (!amountStr) return 0;
+            // 数字以外を除去して数値に変換
+            const numStr = amountStr.toString().replace(/[^\d]/g, '');
+            return parseInt(numStr) || 0;
+        }
+        
+        static async updateEntryStatus(ticketNumber, status = '入場済み') {
+            // 1. Google Apps Scriptを優先的に使用（JSONPでCORSを回避）
+            if (window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+                try {
+                    console.log('Updating entry status via Google Apps Script...');
+                    
+                    // フォールバック: シンプルなGETリクエスト（no-cors モード）
+                    const url = `${window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL}?ticket_number=${encodeURIComponent(ticketNumber)}&status=${encodeURIComponent(status)}&action=update&t=${Date.now()}`;
+                    
+                    await fetch(url, {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
+                    
+                    // no-corsモードでは response.json() が使えないが、リクエストは確実に送信される
+                    console.log('✅ Entry status update request sent');
+                    return true;
+                } catch (error) {
+                    console.warn('Google Apps Script update failed:', error);
+                    return false;
+                }
+            }
+            
+            // 2. フォールバック（ログ出力のみ）
+            console.log(`Entry status update requested (no API configured): ${ticketNumber} -> ${status}`);
+            return true; // UIの動作を継続するためtrueを返す
+        }
+        
+        static async searchTicketByPartial(partialNumber) {
+            // Google Apps Scriptで部分検索
+            if (window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+                const url = `${window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL}?action=partial_search&partial=${encodeURIComponent(partialNumber)}&t=${Date.now()}`;
+                
+                try {
+                    console.log('Searching ticket by partial number via Google Apps Script...');
+                    
+                    // CORSモードで試行（結果を取得するため）
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        mode: 'cors'
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        
+                        if (result.success && result.data) {
+                            return result.data;
+                        }
+                    }
+                    
+                } catch (error) {
+                    // CORSが失敗した場合、no-corsモードで送信だけする
+                    try {
+                        await fetch(url, {
+                            method: 'GET',
+                            mode: 'no-cors'
+                        });
+                    } catch (noCorsError) {
+                        // Silently fail
+                    }
+                }
+            }
+            
+            return null;
+        }
+    }
 
     // QRスキャナークラス
     class QRScanner {
@@ -83,11 +282,13 @@
                 resetBtn: document.getElementById('resetBtn'),
                 shutterBtn: document.getElementById('shutterBtn'),
                 closeBtn: document.getElementById('closeBtn'),
-                flashBtn: document.getElementById('flashBtn'),
+                cameraOffBtn: document.getElementById('cameraOffBtn'),
+                testBtn: document.getElementById('testBtn'),
                 scannerLine: document.getElementById('scannerLine'),
+                scannerOverlay: document.querySelector('.scanner-overlay'),
                 headerMessage: document.getElementById('headerMessage'),
                 cameraPlaceholder: document.getElementById('cameraPlaceholder'),
-                retryCamera: document.getElementById('retryCamera')
+                retryCamera: document.getElementById('retryCameraBtn')
             };
         }
 
@@ -102,47 +303,73 @@
         }
 
         init() {
+            // カメラオフボタンの初期状態を設定
+            if (this.elements.cameraOffBtn) {
+                this.elements.cameraOffBtn.classList.add('camera-on');
+                this.elements.cameraOffBtn.title = 'カメラをオフ';
+            }
+            
             this.bindEvents();
             this.initCamera();
         }
 
         bindEvents() {
             // シャッターボタン
-            this.elements.shutterBtn.addEventListener('click', () => {
-                this.toggleScanning();
-            });
+            if (this.elements.shutterBtn) {
+                this.elements.shutterBtn.addEventListener('click', () => {
+                    this.toggleScanning();
+                });
+            }
 
             // 閉じるボタン
-            this.elements.closeBtn.addEventListener('click', () => {
-                this.closeCamera();
-            });
+            if (this.elements.closeBtn) {
+                this.elements.closeBtn.addEventListener('click', () => {
+                    this.closeCamera();
+                });
+            }
+            // カメラオフボタン
+            if (this.elements.cameraOffBtn) {
+                this.elements.cameraOffBtn.addEventListener('click', () => {
+                    this.toggleCamera();
+                });
+            }
 
-            // フラッシュボタン（未実装）
-            this.elements.flashBtn.addEventListener('click', () => {
-                // フラッシュ機能は今回は省略
-            });
+            // テストボタン
+            if (this.elements.testBtn) {
+                this.elements.testBtn.addEventListener('click', () => {
+                    document.getElementById('manualInput').style.display = 'block';
+                });
+            }
 
             // カメラ選択変更
-            this.elements.cameraSelect.addEventListener('change', (e) => {
-                if (e.target.value) {
-                    this.startCamera(e.target.value);
-                }
-            });
+            if (this.elements.cameraSelect) {
+                this.elements.cameraSelect.addEventListener('change', (e) => {
+                    if (e.target.value) {
+                        this.startCamera(e.target.value);
+                    }
+                });
+            }
 
             // 確認ボタン（スタンドアロンでは簡易表示）
-            this.elements.verifyBtn.addEventListener('click', () => {
-                this.showVerificationResult();
-            });
+            if (this.elements.verifyBtn) {
+                this.elements.verifyBtn.addEventListener('click', () => {
+                    this.showVerificationResult();
+                });
+            }
 
-            // リセットボタン
-            this.elements.resetBtn.addEventListener('click', () => {
-                this.resetScanner();
-            });
+            // リセットボタン（キャンセル）
+            if (this.elements.resetBtn) {
+                this.elements.resetBtn.addEventListener('click', () => {
+                    this.resetScanner();
+                });
+            }
 
-            // 再試行ボタン
-            this.elements.retryCamera.addEventListener('click', () => {
-                this.retryCamera();
-            });
+            // 再試行ボタン（存在する場合のみ）
+            if (this.elements.retryCamera) {
+                this.elements.retryCamera.addEventListener('click', () => {
+                    this.retryCamera();
+                });
+            }
 
             // ページ離脱時の処理
             window.addEventListener('beforeunload', () => {
@@ -152,26 +379,22 @@
 
         async initCamera() {
             try {
-                console.log('🎥 カメラ初期化を開始');
                 this.updateHeaderMessage('カメラを初期化中...');
                 
                 // 許可状態をチェック
                 await this.checkCameraPermissions();
-                console.log('✅ カメラ許可チェック完了');
                 
                 const devices = await this.getVideoDevices();
-                console.log('📹 利用可能なカメラデバイス:', devices.length);
                 this.updateCameraList(devices);
                 
                 const defaultDevice = this.selectDefaultDevice(devices);
                 if (defaultDevice) {
-                    console.log('🎯 選択されたデバイス:', defaultDevice.label || 'Unknown');
                     await this.startCamera(defaultDevice.deviceId);
                 } else {
                     throw new Error('利用可能なカメラデバイスが見つかりません');
                 }
             } catch (error) {
-                console.error('❌ カメラ初期化エラー:', error);
+                console.error('カメラ初期化エラー:', error);
                 this.handleCameraError('カメラへのアクセスが拒否されました', error);
             }
         }
@@ -225,25 +448,19 @@
 
         async startCamera(deviceId) {
             try {
-                console.log('🚀 カメラ起動開始:', deviceId);
                 this.updateHeaderMessage('カメラを起動中...');
                 
                 this.stopCurrentStream();
                 
                 const constraints = this.buildConstraints(deviceId);
-                console.log('📝 カメラ制約:', constraints);
                 
                 this.state.currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-                console.log('✅ MediaStream取得成功');
                 
                 this.elements.video.srcObject = this.state.currentStream;
-                console.log('📺 ビデオ要素にストリーム設定');
                 
                 await this.elements.video.play();
-                console.log('▶️ ビデオ再生開始');
                 
                 this.elements.video.addEventListener('loadedmetadata', () => {
-                    console.log('🎬 ビデオメタデータ読み込み完了');
                     this.setupCanvas();
                 }, { once: true });
                 
@@ -251,9 +468,8 @@
                 this.hideCameraPlaceholder();
                 this.updateHeaderMessage('QRコードをスキャン');
                 this.updateStatus('ready', 'シャッターボタンを押してスキャン');
-                console.log('🎉 カメラ起動完了');
             } catch (error) {
-                console.error('❌ カメラ起動エラー:', error);
+                console.error('カメラ起動エラー:', error);
                 this.handleCameraError('カメラの起動に失敗しました', error);
             }
         }
@@ -323,6 +539,49 @@
                 window.close();
             }
         }
+        
+        toggleCamera() {
+            
+            if (this.state.currentStream) {
+                // カメラがオンの場合はオフにする
+                this.stopCurrentStream();
+                this.elements.cameraOffBtn.classList.remove('camera-on');
+                this.elements.cameraOffBtn.title = 'カメラをオン';
+                this.updateHeaderMessage('カメラがオフです');
+                this.updateStatus('ready', 'カメラオンボタンを押してカメラを起動');
+                
+                // ビデオとスキャナーオーバーレイを非表示にしてプレースホルダーを表示
+                this.elements.video.style.display = 'none';
+                if (this.elements.scannerOverlay) {
+                    this.elements.scannerOverlay.style.display = 'none';
+                }
+                this.showCameraPlaceholder();
+                
+                // プレースホルダーのテキストを変更
+                if (this.elements.cameraPlaceholder) {
+                    const titleElement = this.elements.cameraPlaceholder.querySelector('h3');
+                    const descElement = this.elements.cameraPlaceholder.querySelector('p');
+                    const buttonElement = this.elements.cameraPlaceholder.querySelector('button');
+                    
+                    if (titleElement) titleElement.textContent = 'カメラがオフです';
+                    if (descElement) descElement.textContent = 'カメラをオンにするには下のボタンまたは左上のカメラボタンを押してください';
+                    if (buttonElement) {
+                        buttonElement.textContent = 'カメラをオン';
+                        buttonElement.onclick = () => this.toggleCamera();
+                    }
+                }
+            } else {
+                // カメラがオフの場合はオンにする
+                this.elements.cameraOffBtn.classList.add('camera-on');
+                this.elements.cameraOffBtn.title = 'カメラをオフ';
+                this.hideCameraPlaceholder();
+                this.elements.video.style.display = 'block';
+                if (this.elements.scannerOverlay) {
+                    this.elements.scannerOverlay.style.display = 'block';
+                }
+                this.initCamera();
+            }
+        }
 
         scanQRCode() {
             if (!this.state.scanning) return;
@@ -365,14 +624,19 @@
         displayResult(data) {
             this.elements.qrContent.textContent = data;
             this.elements.resultContainer.classList.add('show');
-            this.elements.resultContainer.setAttribute('aria-hidden', 'false');
+            this.elements.resultContainer.removeAttribute('aria-hidden');
+            this.elements.resultContainer.removeAttribute('inert');
         }
 
         parseTicketData(data) {
             try {
+                // チケット番号を直接検索
+                if (this.isTicketNumber(data)) {
+                    this.displayTicketInfo(data);
+                }
                 // Session IDを抽出
-                const sessionId = this.extractSessionId(data);
-                if (sessionId) {
+                else if (this.extractSessionId(data)) {
+                    const sessionId = this.extractSessionId(data);
                     this.displayCustomerInfo(sessionId);
                 } else if (this.isJsonData(data)) {
                     this.displayJsonInfo(data);
@@ -382,11 +646,19 @@
                     // 直接session_idの場合
                     if (data.startsWith('cs_test_') || data.startsWith('cs_')) {
                         this.displayCustomerInfo(data);
+                    } else {
+                        // 不明なデータの場合、チケット番号として検索を試行
+                        this.displayTicketInfo(data);
                     }
                 }
             } catch (error) {
                 console.error('チケットデータの解析エラー:', error);
             }
+        }
+        
+        isTicketNumber(data) {
+            // チケット番号のパターンを判定（例：TKT-20240901-001）
+            return /^TKT-\d{8}-\d{3}$/.test(data) || data.includes('TKT-');
         }
 
         extractSessionId(data) {
@@ -402,21 +674,184 @@
             return null;
         }
 
+        async displayTicketInfo(ticketNumber) {
+            try {
+                this.updateStatus('scanning', 'チケット情報を取得中...');
+                
+                // Google Sheets APIでチケット情報を取得
+                const ticketData = await SheetsAPI.getTicketData(ticketNumber);
+                
+                if (ticketData) {
+                    this.showTicketDetails(ticketData);
+                    this.updateStatus('success', '✅ チケットが確認されました');
+                } else {
+                    // フォールバック: モックデータを確認
+                    await this.displayCustomerInfo(ticketNumber);
+                }
+            } catch (error) {
+                console.error('チケット情報取得エラー:', error);
+                this.showTicketInfoError(ticketNumber, error.message);
+            }
+        }
+        
         async displayCustomerInfo(sessionId) {
-            // モックデータから顧客情報を取得
+            // モックデータから顧客情報を取得（フォールバック用）
             const customerData = MOCK_CUSTOMER_DATA[sessionId];
             
             if (customerData) {
                 this.showCustomerDetails(customerData);
-                this.updateStatus('success', '✅ チケットが確認されました');
+                this.updateStatus('success', '✅ チケットが確認されました（テストデータ）');
             } else {
-                this.showTicketInfo(`
-                    <div style="color: #f44336;">
-                        <strong>❌ チケットが見つかりません</strong><br>
-                        <small>Session ID: ${this.escapeHtml(sessionId)}</small>
+                this.showTicketInfoError(sessionId, 'チケットが見つかりません');
+            }
+        }
+        
+        showTicketInfoError(identifier, errorMessage) {
+            this.showTicketInfo(`
+                <div style="color: #f44336;">
+                    <strong>❌ チケットが見つかりません</strong><br>
+                    <small>ID: ${this.escapeHtml(identifier)}</small><br>
+                    <small>エラー: ${this.escapeHtml(errorMessage)}</small>
+                </div>
+            `);
+            this.updateStatus('error', 'チケットが見つかりません');
+        }
+
+        showTicketDetails(data) {
+            // 現在のチケットデータを保存（ボタンクリック時に使用）
+            this.currentTicketData = data;
+            
+            
+            // 複数のパターンに対応（Stripeの paid/unpaid も含む）
+            const isPaid = data.paymentStatus === '支払い完了' || 
+                          data.paymentStatus === 'paid' || 
+                          data.paymentStatus === '支払済' ||
+                          data.paymentStatus === '支払い済み' ||
+                          data.paymentStatus === 'complete';
+            
+            const isEntered = data.entryStatus === '入場済み' || 
+                             data.entryStatus === 'entered' ||
+                             data.entryStatus === '入場済';
+            
+            // ステータス用のバッジスタイル（白背景に緑ボーダー）
+            const paymentBadgeStyle = isPaid ? 'background: white; color: #4CAF50; border: 1px solid #4CAF50;' : 'background: white; color: #ef4444; border: 1px solid #ef4444;';
+            const paymentBadgeText = isPaid ? '支払済' : '未払い';
+            const paymentIcon = isPaid ? '✓' : '✕';
+            
+            // 入場ステータス（未払いの場合は入場不可）
+            let entryBadgeStyle, entryBadgeText, entryIcon;
+            if (!isPaid) {
+                // 未払いの場合は入場不可
+                entryBadgeStyle = 'background: white; color: #ef4444; border: 1px solid #ef4444;';
+                entryBadgeText = '入場不可';
+                entryIcon = '✕';
+            } else if (isEntered) {
+                // 支払い済み＋入場済み
+                entryBadgeStyle = 'background: white; color: #f59e0b; border: 1px solid #f59e0b;';
+                entryBadgeText = '入場済';
+                entryIcon = '🚫';
+            } else {
+                // 支払い済み＋未入場
+                entryBadgeStyle = 'background: white; color: #4CAF50; border: 1px solid #4CAF50;';
+                entryBadgeText = '入場可能';
+                entryIcon = '✓';
+            }
+            
+            // ボタン状態の設定
+            if (!isPaid && this.elements.verifyBtn) {
+                // 未払いの場合
+                this.elements.verifyBtn.innerHTML = '⚠️ 支払い未完了';
+                this.elements.verifyBtn.className = 'btn';
+                this.elements.verifyBtn.style.background = '#ef4444';
+                this.elements.verifyBtn.style.color = 'white';
+                this.elements.verifyBtn.style.border = 'none';
+                this.elements.verifyBtn.disabled = true;
+                this.updateStatus('error', '⚠️ 支払いが完了していないため入場できません');
+            } else if (isEntered && this.elements.verifyBtn) {
+                // 既に入場済みの場合
+                this.elements.verifyBtn.innerHTML = '✓ 使用済み';
+                this.elements.verifyBtn.className = 'btn';
+                this.elements.verifyBtn.style.background = '#6c757d';
+                this.elements.verifyBtn.style.color = 'white';
+                this.elements.verifyBtn.style.border = 'none';
+                this.elements.verifyBtn.disabled = true;
+                this.updateStatus('error', '⚠️ このチケットは既に使用済みです');
+            } else if (this.elements.verifyBtn) {
+                // 支払い済み＋未入場の場合は通常の状態
+                this.elements.verifyBtn.innerHTML = '使用済みにする';
+                this.elements.verifyBtn.className = 'btn btn-success';
+                this.elements.verifyBtn.style.background = '';
+                this.elements.verifyBtn.style.color = '';
+                this.elements.verifyBtn.style.border = '';
+                this.elements.verifyBtn.disabled = false;
+            }
+            
+            this.showTicketInfo(`
+                <div style="background: #f8f9fa; padding: 15px 0; border-radius: 10px; margin-bottom: 10px;">
+                    <!-- 名前とステータスバッジ -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <strong style="font-size: 18px; color: #333;">${this.escapeHtml(data.name)}</strong>
+                        <div style="display: flex; gap: 8px;">
+                            <span style="${paymentBadgeStyle} padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                <span style="font-size: 10px;">${paymentIcon}</span>
+                                ${paymentBadgeText}
+                            </span>
+                            <span style="${entryBadgeStyle} padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                <span style="font-size: 10px;">${entryIcon}</span>
+                                ${entryBadgeText}
+                            </span>
+                        </div>
                     </div>
-                `);
-                this.updateStatus('error', 'チケットが見つかりません');
+                    
+                    <!-- チケット番号と購入日時 -->
+                    <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <div style="margin-bottom: 8px;">
+                            <div style="font-size: 11px; color: #999; margin-bottom: 2px;">チケット番号</div>
+                            <div style="font-size: 16px; font-weight: 600; color: #333; font-family: monospace;">
+                                ${this.escapeHtml(data.ticketNumber)}
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: #999; margin-bottom: 2px;">購入日時</div>
+                            <div style="font-size: 14px; color: #666;">
+                                ${this.formatDate(data.purchaseDate)}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    
+                    <!-- イベント情報と席種 -->
+                    <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <div style="margin-bottom: 8px;">
+                            <div style="font-size: 11px; color: #999; margin-bottom: 2px;">イベント</div>
+                            <div style="font-size: 16px; font-weight: 600; color: #333;">
+                                ${this.escapeHtml(data.event)}
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: #999; margin-bottom: 2px;">チケット</div>
+                            <div style="font-size: 14px; color: #666;">
+                                ${this.escapeHtml(data.ticketType)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+        
+        formatDate(dateString) {
+            if (!dateString) return '不明';
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString('ja-JP', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch {
+                return dateString;
             }
         }
 
@@ -425,47 +860,33 @@
             const statusText = data.status === 'paid' ? '✅ 支払い済み' : '❌ 未払い';
             
             this.showTicketInfo(`
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 10px;">
+                <div style="background: #f8f9fa; padding: 15px 0; border-radius: 10px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <strong style="font-size: 18px; color: #333;">${this.escapeHtml(data.name)}</strong>
                         <span style="color: ${statusColor}; font-weight: bold; font-size: 14px;">${statusText}</span>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                        <div>
-                            <div style="font-size: 12px; color: #666; margin-bottom: 2px;">メール</div>
-                            <div style="font-size: 14px; font-weight: 500;">${this.escapeHtml(data.email)}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 12px; color: #666; margin-bottom: 2px;">電話番号</div>
-                            <div style="font-size: 14px; font-weight: 500;">${this.escapeHtml(data.phone)}</div>
-                        </div>
-                    </div>
                     
-                    <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 10px;">
-                        <div style="font-size: 16px; font-weight: 600; color: #1976d2; margin-bottom: 8px;">
-                            🎫 ${this.escapeHtml(data.event)}
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <div>
-                                <span style="color: #666;">席種:</span>
-                                <strong>${this.escapeHtml(data.ticketType)}</strong>
+                    <!-- イベント情報と席種 -->
+                    <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <div style="margin-bottom: 8px;">
+                            <div style="font-size: 11px; color: #999; margin-bottom: 2px;">イベント</div>
+                            <div style="font-size: 16px; font-weight: 600; color: #333;">
+                                ${this.escapeHtml(data.event)}
                             </div>
-                            <div>
-                                <span style="color: #666;">枚数:</span>
-                                <strong>${data.quantity}枚</strong>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: #999; margin-bottom: 2px;">チケット</div>
+                            <div style="font-size: 14px; color: #666;">
+                                ${this.escapeHtml(data.ticketType)}
                             </div>
                         </div>
                     </div>
                     
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                        <div>
-                            <div style="font-size: 12px; color: #666;">購入金額</div>
-                            <div style="font-size: 18px; font-weight: 700; color: #2e7d32;">¥${data.amount.toLocaleString()}</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 12px; color: #666;">購入日時</div>
-                            <div style="font-size: 13px; font-weight: 500;">${data.purchaseDate}</div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-size: 11px; color: #999; margin-bottom: 2px;">購入日時</div>
+                        <div style="font-size: 14px; color: #666;">
+                            ${data.purchaseDate}
                         </div>
                     </div>
                 </div>
@@ -527,60 +948,138 @@
             return div.innerHTML;
         }
 
-        showVerificationResult() {
+        async showVerificationResult() {
             const btn = this.elements.verifyBtn;
+            
+            // 現在表示されているチケット番号を取得
+            const ticketNumber = this.getCurrentTicketNumber();
+            
+            if (!ticketNumber) {
+                this.updateStatus('error', 'チケット番号が見つかりません');
+                return;
+            }
             
             // ローディング表示
             btn.disabled = true;
             btn.innerHTML = '確認中... <span class="loading-spinner"></span>';
             
-            // 1秒後に結果表示（実際のAPIコール風の演出）
-            setTimeout(() => {
+            try {
+                
+                // Google Sheets APIで入場状況を更新
+                await SheetsAPI.updateEntryStatus(ticketNumber, '入場済');
+                
                 this.updateStatus('success', '✅ 入場が承認されました');
-                btn.textContent = '入場承認済み';
-                btn.className = 'btn btn-success';
-                btn.style.background = '#4CAF50';
+                
+                // ボタンを使用済みに変更
+                btn.innerHTML = '✓ 使用済み';
+                btn.className = 'btn';
+                btn.style.background = '#6c757d';
+                btn.style.color = 'white';
+                btn.style.border = 'none';
+                btn.disabled = true;
                 
                 // 成功音を再生
                 this.playSuccessSound();
                 
-                // 確認済みのマークを追加
-                const ticketInfo = this.elements.ticketDetails;
-                if (ticketInfo && !ticketInfo.querySelector('.verified-badge')) {
-                    const verifiedBadge = document.createElement('div');
-                    verifiedBadge.className = 'verified-badge';
-                    verifiedBadge.innerHTML = `
-                        <div style="
-                            background: #4CAF50;
-                            color: white;
-                            padding: 8px 16px;
-                            border-radius: 20px;
-                            font-size: 14px;
-                            font-weight: 600;
-                            text-align: center;
-                            margin-top: 15px;
-                            animation: fadeIn 0.3s ease;
-                        ">
-                            ✅ 入場確認済み<br>
-                            <small style="opacity: 0.9;">${new Date().toLocaleString('ja-JP')}</small>
-                        </div>
-                    `;
-                    ticketInfo.appendChild(verifiedBadge);
+                // チケット詳細の入場状況を更新
+                this.updateDisplayedEntryStatus('入場済み');
+                
+                // キャンセルボタンの文言を「閉じる」に変更
+                if (this.elements.resetBtn) {
+                    this.elements.resetBtn.textContent = '閉じる';
                 }
-            }, 1000);
+                
+            } catch (error) {
+                console.error('入場状況更新エラー:', error);
+                this.updateStatus('error', '入場状況の更新に失敗しました');
+                btn.disabled = false;
+                btn.innerHTML = '読み込み中';
+            }
+        }
+        
+        getCurrentTicketNumber() {
+            // 現在表示中のチケット情報からチケット番号を取得
+            return this.currentTicketData ? this.currentTicketData.ticketNumber : null;
+        }
+        
+        addVerificationBadge() {
+            const ticketInfo = this.elements.ticketDetails;
+            if (ticketInfo && !ticketInfo.querySelector('.verified-badge')) {
+                const verifiedBadge = document.createElement('div');
+                verifiedBadge.className = 'verified-badge';
+                verifiedBadge.innerHTML = `
+                    <div style="
+                        background: #4CAF50;
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 20px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        text-align: center;
+                        margin-top: 15px;
+                        animation: fadeIn 0.3s ease;
+                    ">
+                        ✅ 入場確認済み<br>
+                        <small style="opacity: 0.9;">${new Date().toLocaleString('ja-JP')}</small>
+                    </div>
+                `;
+                ticketInfo.appendChild(verifiedBadge);
+            }
+        }
+        
+        updateDisplayedEntryStatus(newStatus) {
+            // 表示されている入場状況を更新
+            const ticketInfo = this.elements.ticketDetails;
+            if (ticketInfo) {
+                const entryStatusElements = ticketInfo.querySelectorAll('div');
+                entryStatusElements.forEach(element => {
+                    if (element.textContent.includes('入場状況') || 
+                        element.textContent.includes('入場可能') || 
+                        element.textContent.includes('入場済み')) {
+                        const parentElement = element.parentElement;
+                        if (parentElement) {
+                            const statusColor = newStatus === '入場済み' ? '#FF9800' : '#4CAF50';
+                            const statusText = newStatus === '入場済み' ? '🚫 入場済み' : '✅ 入場可能';
+                            element.style.color = statusColor;
+                            element.textContent = newStatus;
+                            
+                            // 右上のステータス表示も更新
+                            const rightStatusDiv = parentElement.querySelector('div[style*="text-align: right"]');
+                            if (rightStatusDiv) {
+                                const statusDisplays = rightStatusDiv.querySelectorAll('div');
+                                statusDisplays.forEach(statusDiv => {
+                                    if (statusDiv.textContent.includes('入場')) {
+                                        statusDiv.style.color = statusColor;
+                                        statusDiv.textContent = statusText;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                });
+            }
         }
 
         resetScanner() {
             this.stopScanning();
             this.state.lastScannedCode = null;
+            this.currentTicketData = null; // 現在のチケットデータをクリア
             
             this.elements.resultContainer.classList.remove('show');
-            this.elements.resultContainer.setAttribute('aria-hidden', 'true');
+            this.elements.resultContainer.setAttribute('inert', '');
             this.elements.ticketInfo.style.display = 'none';
             
-            this.elements.verifyBtn.textContent = '確認する';
+            this.elements.verifyBtn.textContent = '読み込み中';
             this.elements.verifyBtn.className = 'btn btn-success';
+            this.elements.verifyBtn.style.background = '';
+            this.elements.verifyBtn.style.color = '';
+            this.elements.verifyBtn.style.border = '';
             this.elements.verifyBtn.disabled = false;
+            
+            // キャンセルボタンの文言を元に戻す
+            if (this.elements.resetBtn) {
+                this.elements.resetBtn.textContent = 'キャンセル';
+            }
             
             this.updateStatus('ready', 'シャッターボタンを押してスキャン');
         }
@@ -617,20 +1116,20 @@
         }
 
         showCameraPlaceholder() {
-            this.elements.cameraPlaceholder.style.display = 'block';
+            if (this.elements.cameraPlaceholder) {
+                this.elements.cameraPlaceholder.style.display = 'block';
+            }
         }
 
         hideCameraPlaceholder() {
-            this.elements.cameraPlaceholder.style.display = 'none';
+            if (this.elements.cameraPlaceholder) {
+                this.elements.cameraPlaceholder.style.display = 'none';
+            }
         }
 
         updateHeaderMessage(message) {
-            console.log('📝 ヘッダーメッセージ更新:', message);
             if (this.elements.headerMessage) {
                 this.elements.headerMessage.textContent = message;
-                console.log('✅ ヘッダーメッセージ更新成功');
-            } else {
-                console.warn('⚠️ headerMessage要素が見つかりません');
             }
         }
 
@@ -660,17 +1159,102 @@
         // テスト用：QRスキャンをシミュレート
         simulateQRScan(data) {
             if (!data || data.trim() === '') {
-                alert('セッションIDを入力してください');
+                alert('チケット番号または下4桁を入力してください');
                 return;
             }
             
-            console.log('🧪 Simulating QR scan:', data);
+            const trimmedData = data.trim();
             
             // 手動入力パネルを閉じる
             document.getElementById('manualInput').style.display = 'none';
             
-            // QRスキャン処理をシミュレート
-            this.handleQRCode(data.trim());
+            // 短い文字列（4文字以下の英数字）は部分検索
+            if (/^[a-zA-Z0-9]{1,4}$/.test(trimmedData)) {
+                this.searchByPartialNumber(trimmedData);
+            } else {
+                // フル番号またはその他の形式
+                this.handleQRCode(trimmedData);
+            }
+        }
+        
+        async searchByPartialNumber(partialNumber) {
+            try {
+                this.updateStatus('scanning', '部分番号で検索中...');
+                
+                // Google Apps Scriptで部分検索
+                const ticketData = await SheetsAPI.searchTicketByPartial(partialNumber);
+                
+                if (ticketData) {
+                    this.showTicketDetails(ticketData);
+                    this.displayResult(partialNumber);
+                    this.updateStatus('success', '✅ チケットが見つかりました');
+                } else {
+                    // フォールバック: モックデータから検索
+                    this.searchMockDataByPartial(partialNumber);
+                }
+                
+            } catch (error) {
+                // フォールバック: モックデータから検索
+                this.searchMockDataByPartial(partialNumber);
+            }
+        }
+        
+        searchMockDataByPartial(partialNumber) {
+            const mockTickets = this.getMockTickets();
+            const matches = mockTickets.filter(ticket => 
+                ticket.ticketNumber.toLowerCase().slice(-partialNumber.length) === partialNumber.toLowerCase()
+            );
+            
+            if (matches.length === 1) {
+                this.showTicketDetails(matches[0]);
+                this.displayResult(matches[0].ticketNumber);
+                this.updateStatus('success', '✅ チケットが見つかりました（テストデータ）');
+            } else if (matches.length > 1) {
+                this.updateStatus('error', `❌ 複数のチケットが見つかりました。より詳しい番号を入力してください`);
+            } else {
+                this.updateStatus('error', `❌ 下4桁「${partialNumber}」に一致するチケットが見つかりません`);
+            }
+        }
+        
+        getMockTickets() {
+            return [
+                {
+                    name: '田中太郎',
+                    email: 'tanaka@example.com',
+                    phone: '090-1234-5678',
+                    event: '夏祭りコンサート',
+                    ticketType: 'VIP席',
+                    ticketNumber: 'TKT-20250904-0001',
+                    amount: 15000,
+                    purchaseDate: '2024-09-01 14:30',
+                    paymentStatus: '支払い完了',
+                    entryStatus: '未入場'
+                },
+                {
+                    name: '佐藤花子',
+                    email: 'sato@example.com', 
+                    phone: '080-9876-5432',
+                    event: '秋の音楽フェス',
+                    ticketType: '一般席',
+                    ticketNumber: 'TKT-20250904-0002',
+                    amount: 8000,
+                    purchaseDate: '2024-09-02 10:15',
+                    paymentStatus: '支払い完了',
+                    entryStatus: '未入場'
+                },
+                {
+                    name: '山田次郎',
+                    email: 'yamada@example.com',
+                    phone: '070-5555-6666',
+                    event: 'クリスマス特別公演',
+                    ticketType: 'プレミアム席',
+                    ticketNumber: 'TKT-20250904-e2de',
+                    amount: 12000,
+                    purchaseDate: '2024-09-03 16:45',
+                    paymentStatus: '支払い完了',
+                    entryStatus: '未入場'
+                }
+            ];
         }
     }
 

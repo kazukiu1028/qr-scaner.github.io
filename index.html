@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QRコード読み取り</title>
+    
+    <!-- PWA設定 -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pellamori">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    
+    <!-- SEO・アクセシビリティ -->
+    <meta name="description" content="QRコードでチケットを確認・管理するアプリ">
+    <meta name="keywords" content="QR,チケット,確認,管理,PWA">
     <style>
         * {
             margin: 0;
@@ -159,6 +171,26 @@
         
         .control-btn:hover {
             background: rgba(0, 0, 0, 0.7);
+        }
+        
+        .camera-off-btn {
+            position: relative;
+        }
+        
+        .camera-off-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 2px;
+            height: 30px;
+            background: #ff4444;
+            transform: translate(-50%, -50%) rotate(45deg);
+            border-radius: 1px;
+        }
+        
+        .camera-off-btn.camera-on::after {
+            display: none;
         }
         
         /* シャッターボタン */
@@ -417,10 +449,11 @@
                 transform: translate(-50%, -50%);
                 text-align: center;
                 color: white;
-                background: rgba(0,0,0,0.8);
+                background: rgba(0, 0, 0, 0.8);
                 padding: 30px;
                 border-radius: 15px;
-                max-width: 300px;
+                max-width: 360px;
+                width: 100%;
                 display: none;
             ">
                 <div style="font-size: 48px; margin-bottom: 15px;">📷</div>
@@ -428,7 +461,7 @@
                 <p style="font-size: 14px; margin-bottom: 20px;">
                     QRコードをスキャンするためにカメラの許可が必要です
                 </p>
-                <button id="retryCamera" style="
+                <button id="retryCameraBtn" style="
                     background: #4CAF50;
                     color: white;
                     border: none;
@@ -446,7 +479,10 @@
             <!-- カメラコントロール -->
             <div class="camera-controls">
                 <button id="closeBtn" class="control-btn close-btn">×</button>
-                <button id="testBtn" class="control-btn test-btn" onclick="document.getElementById('manualInput').style.display='block'">🧪</button>
+                <div style="display: flex; gap: 10px;">
+                    <button id="cameraOffBtn" class="control-btn camera-off-btn" title="カメラをオフ">📷</button>
+                    <button id="testBtn" class="control-btn test-btn" onclick="document.getElementById('manualInput').style.display='block'" title="手動入力">✏️</button>
+                </div>
             </div>
             
             <!-- シャッターボタン -->
@@ -464,7 +500,7 @@
                 シャッターボタンを押してスキャン
             </div>
             
-            <!-- 手動入力テスト -->
+            <!-- 手動入力 -->
             <div style="
                 position: absolute;
                 bottom: 20px;
@@ -476,18 +512,18 @@
                 display: none;
                 z-index: 20;
             " id="manualInput">
-                <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">🧪 テスト用手動入力</div>
-                <input type="text" id="manualSessionId" placeholder="cs_test_123456789" style="
-                    width: calc(100% - 80px);
-                    padding: 8px 12px;
+                <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">✏️ 手動でチケット番号を入力</div>
+                <input type="text" id="manualSessionId" placeholder="下4桁（例：0001, e2de）またはフル番号" style="
+                    width: 100%;
+                    padding: 16px 12px;
                     border: 1px solid #ddd;
                     border-radius: 5px;
-                    font-size: 14px;
+                    font-size: 16px;
                     font-family: monospace;
                 ">
                 <button onclick="window.qrScanner?.simulateQRScan(document.getElementById('manualSessionId').value)" style="
-                    width: 70px;
-                    margin-left: 10px;
+                    width: 100%;
+                    margin-left: 0;
                     padding: 8px 12px;
                     background: #4CAF50;
                     color: white;
@@ -495,7 +531,9 @@
                     border-radius: 5px;
                     font-size: 14px;
                     cursor: pointer;
-                ">テスト</button>
+                    margin-top: 12px;
+                ">確認</button>
+                
                 <button onclick="document.getElementById('manualInput').style.display='none'" style="
                     position: absolute;
                     top: 5px;
@@ -504,13 +542,14 @@
                     border: none;
                     color: #666;
                     cursor: pointer;
+                    font-size: 30px;
                 ">×</button>
             </div>
             
             <div class="error-message" id="errorMessage" role="alert" aria-live="assertive"></div>
         </section>
         
-        <section id="resultContainer" class="result-container" aria-hidden="true">
+        <section id="resultContainer" class="result-container" inert>
             <div class="result-box">
                 <div class="result-label">QRコード内容</div>
                 <div class="result-value" id="qrContent"></div>
@@ -522,11 +561,11 @@
             </div>
             
             <div class="action-buttons">
-                <button id="verifyBtn" class="btn btn-success" type="button">
-                    確認する
-                </button>
                 <button id="resetBtn" class="btn btn-secondary" type="button">
-                    再スキャン
+                    キャンセル
+                </button>
+                <button id="verifyBtn" class="btn btn-success" type="button">
+                    読み込み中
                 </button>
             </div>
         </section>
@@ -542,6 +581,9 @@
         }
     </script>
     
+    <!-- 設定ファイル -->
+    <script src="config.js"></script>
+    
     <!-- 設定データ -->
     <script>
         window.QRScannerConfig = {
@@ -553,5 +595,35 @@
     
     <!-- メインスクリプト -->
     <script src="qr-scanner.js"></script>
+    
+    <!-- PWA Service Worker 登録 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                        
+                        // インストールプロンプト処理
+                        let deferredPrompt;
+                        window.addEventListener('beforeinstallprompt', (e) => {
+                            e.preventDefault();
+                            deferredPrompt = e;
+                            
+                            // インストールボタンを表示（将来の拡張用）
+                            console.log('PWA install prompt available');
+                        });
+                        
+                        // インストール完了時
+                        window.addEventListener('appinstalled', (evt) => {
+                            console.log('PWA was installed');
+                        });
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
