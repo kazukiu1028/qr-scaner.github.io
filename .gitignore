@@ -1,0 +1,17 @@
+# MacOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# WordPress files (不要なファイル)
+page-camera.php
+resources/
+
+# 一時ファイル
+*.tmp
+*.temp

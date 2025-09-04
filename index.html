@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRコード読み取り</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #000;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        .container {
+            width: 100%;
+            height: 100vh;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 10;
+            color: white;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 18px;
+            font-weight: 500;
+            margin: 0;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+        
+        .scanner-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: #000;
+        }
+        
+        #video {
+            width: 100%;
+            height: 100vh;
+            object-fit: cover;
+            display: block;
+        }
+        
+        #canvas {
+            display: none;
+        }
+        
+        .scanner-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .scanner-overlay::before,
+        .scanner-overlay::after {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #4CAF50;
+        }
+        
+        .scanner-overlay::before {
+            top: -3px;
+            left: -3px;
+            border-right: none;
+            border-bottom: none;
+            border-radius: 20px 0 0 0;
+        }
+        
+        .scanner-overlay::after {
+            bottom: -3px;
+            right: -3px;
+            border-left: none;
+            border-top: none;
+            border-radius: 0 0 20px 0;
+        }
+        
+        .scanner-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #4CAF50, transparent);
+            top: 50%;
+            animation: scan 2s infinite;
+            display: none;
+        }
+        
+        .scanner-line.active {
+            display: block;
+        }
+        
+        @keyframes scan {
+            0%, 100% { transform: translateY(-125px); }
+            50% { transform: translateY(125px); }
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            padding: 30px 20px;
+            z-index: 10;
+        }
+        
+        /* カメラコントロール */
+        .camera-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 10;
+        }
+        
+        .control-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 22px;
+            border: none;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-btn:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        
+        /* シャッターボタン */
+        .shutter-container {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+        
+        .shutter-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid white;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .shutter-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .shutter-btn.scanning {
+            background: #4CAF50;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* カメラ選択を非表示 */
+        .camera-select {
+            display: none;
+        }
+        
+        /* ステータス表示をシンプルに */
+        .status {
+            position: absolute;
+            bottom: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+        
+        .status.scanning {
+            background: rgba(30, 136, 229, 0.8);
+            color: white;
+        }
+        
+        .status.success {
+            background: rgba(56, 142, 60, 0.8);
+            color: white;
+        }
+        
+        .status.error {
+            background: rgba(198, 40, 40, 0.8);
+            color: white;
+        }
+        
+        .status.ready {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+        }
+        
+        .result-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            z-index: 15;
+            display: none;
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .result-container.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .result-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .result-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .result-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            word-break: break-all;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: rgba(255, 235, 238, 0.9);
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+            position: absolute;
+            bottom: 200px;
+            left: 20px;
+            right: 20px;
+            z-index: 20;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 16px;
+            }
+            
+            .scanner-overlay {
+                width: 200px;
+                height: 200px;
+            }
+            
+            .shutter-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 28px;
+            }
+            
+            .control-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎫 チケット確認</h1>
+        </div>
+        
+        <div class="scanner-container">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+            <div class="scanner-overlay">
+                <div class="scanner-line" id="scannerLine"></div>
+            </div>
+            
+            <!-- カメラコントロール -->
+            <div class="camera-controls">
+                <button id="closeBtn" class="control-btn close-btn">×</button>
+                <button id="flashBtn" class="control-btn flash-btn">⚡</button>
+            </div>
+            
+            <!-- シャッターボタン -->
+            <div class="shutter-container">
+                <button id="shutterBtn" class="shutter-btn">📷</button>
+            </div>
+        </div>
+        
+        <section class="controls">
+            <select id="cameraSelect" class="camera-select" aria-label="カメラ選択">
+                <option value="">カメラを選択...</option>
+            </select>
+            
+            <div id="status" class="status ready" role="status" aria-live="polite">
+                シャッターボタンを押してスキャン
+            </div>
+            
+            <div class="error-message" id="errorMessage" role="alert" aria-live="assertive"></div>
+        </section>
+        
+        <section id="resultContainer" class="result-container" aria-hidden="true">
+            <div class="result-box">
+                <div class="result-label">QRコード内容</div>
+                <div class="result-value" id="qrContent"></div>
+            </div>
+            
+            <div class="result-box" id="ticketInfo" style="display: none;">
+                <div class="result-label">チケット情報</div>
+                <div class="result-value" id="ticketDetails"></div>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="verifyBtn" class="btn btn-success" type="button">
+                    確認する
+                </button>
+                <button id="resetBtn" class="btn btn-secondary" type="button">
+                    再スキャン
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <!-- QRコード読み取りライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+    
+    <!-- 設定データ -->
+    <script>
+        window.QRScannerConfig = {
+            ajaxUrl: null, // スタンドアロンでは使用しない
+            nonce: null,
+            stripeKey: null
+        };
+    </script>
+    
+    <!-- メインスクリプト -->
+    <script src="qr-scanner.js"></script>
+</body>
+</html>
