@@ -144,6 +144,9 @@
 
         async initCamera() {
             try {
+                // 許可状態をチェック
+                await this.checkCameraPermissions();
+                
                 const devices = await this.getVideoDevices();
                 this.updateCameraList(devices);
                 
@@ -152,7 +155,24 @@
                     await this.startCamera(defaultDevice.deviceId);
                 }
             } catch (error) {
-                this.handleError('カメラへのアクセスが拒否されました', error);
+                this.handleCameraError('カメラへのアクセスが拒否されました', error);
+            }
+        }
+
+        async checkCameraPermissions() {
+            try {
+                const permissions = await navigator.permissions.query({name: 'camera'});
+                console.log('Camera permission state:', permissions.state);
+                
+                // HTTPS確認
+                if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                    throw new Error('カメラ機能にはHTTPS接続が必要です');
+                }
+                
+                return permissions.state;
+            } catch (error) {
+                console.warn('Permission check failed:', error);
+                // 権限チェックに失敗しても続行
             }
         }
 
@@ -203,7 +223,7 @@
                 this.hideError();
                 this.updateStatus('ready', 'シャッターボタンを押してスキャン');
             } catch (error) {
-                this.handleError('カメラの起動に失敗しました', error);
+                this.handleCameraError('カメラの起動に失敗しました', error);
             }
         }
 
@@ -542,6 +562,25 @@
         handleError(message, error) {
             console.error(message, error);
             this.showError(`${message}: ${error.message}`);
+        }
+
+        handleCameraError(message, error) {
+            console.error(message, error);
+            
+            let userMessage = message;
+            
+            // エラータイプ別のメッセージ
+            if (error.name === 'NotAllowedError') {
+                userMessage = 'カメラのアクセスが拒否されました。ブラウザの設定でカメラを許可してください。';
+            } else if (error.name === 'NotFoundError') {
+                userMessage = 'カメラが見つかりません。カメラが接続されているか確認してください。';
+            } else if (error.name === 'NotSupportedError') {
+                userMessage = 'HTTPSが必要です。https:// のURLでアクセスしてください。';
+            } else if (error.name === 'NotReadableError') {
+                userMessage = 'カメラが他のアプリケーションで使用中です。';
+            }
+            
+            this.showError(userMessage);
         }
 
         showError(message) {
