@@ -9,7 +9,7 @@
 
 window.QR_SCANNER_CONFIG = {
     // Google Apps Script Web AppのURL（デプロイ後に取得）
-    GOOGLE_APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxTk2xJTuBrtJ-G_LtoHHDXwvJYf663P23ntGtDOlaLF0ZinbZ0crtP3s8bNv_EkF1kYQ/exec',
+    GOOGLE_APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwTH88KS4Tk21leripwl4v219DUT1G5XqptUe66jlv15MJVlIakm3V8svfKe8XBfDOJRg/exec',
     
     // 従来のGoogle Sheets API設定（フォールバック用）
     GOOGLE_SHEETS: {

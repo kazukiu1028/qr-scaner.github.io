@@ -1,5 +1,5 @@
 // Pellamori PWA Service Worker
-const CACHE_NAME = 'pellamori-v1';
+const CACHE_NAME = 'pellamori-v2';
 const CACHE_URLS = [
   '/',
   '/index.html',

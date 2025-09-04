@@ -89,16 +89,111 @@
 
     // Google Sheets API関連の関数
     class SheetsAPI {
+        static async getConfig() {
+            console.log('🔧 [DEBUG] getConfig呼び出し開始');
+            console.log('🔧 [DEBUG] QR_SCANNER_CONFIG:', window.QR_SCANNER_CONFIG);
+            
+            // Google Apps Scriptから設定を取得
+            if (window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL && 
+                window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+                try {
+                    const url = `${window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL}?action=get_config`;
+                    console.log('📊 [API] 設定取得開始 - URL:', url);
+                    
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    console.log('📊 [API] レスポンス受信:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        ok: response.ok,
+                        headers: Object.fromEntries(response.headers.entries())
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                    }
+                    
+                    const responseText = await response.text();
+                    console.log('📊 [API] レスポンステキスト:', responseText);
+                    
+                    let data;
+                    try {
+                        data = JSON.parse(responseText);
+                    } catch (parseError) {
+                        console.error('❌ [API] JSON解析エラー:', parseError);
+                        console.error('❌ [API] レスポンス内容:', responseText);
+                        throw new Error(`JSON解析エラー: ${parseError.message}`);
+                    }
+                    
+                    console.log('📊 [API] 設定取得成功:', data);
+                    
+                    if (data.success && data.config) {
+                        console.log('✅ [API] 設定データが有効です:', data.config);
+                        return {
+                            success: true,
+                            config: {
+                                pin: data.config.pin || '1234',
+                                max_attempts: data.config.max_attempts || 3
+                            }
+                        };
+                    } else {
+                        console.warn('⚠️ [API] 設定データが不完全です:', data);
+                        return {
+                            success: false,
+                            config: {
+                                pin: '1234',
+                                max_attempts: 3
+                            }
+                        };
+                    }
+                } catch (error) {
+                    console.error('❌ [API] 設定取得エラー:', error);
+                    console.error('❌ [API] エラー詳細:', {
+                        message: error.message,
+                        stack: error.stack,
+                        name: error.name
+                    });
+                    return {
+                        success: false,
+                        config: {
+                            pin: '1234',
+                            max_attempts: 3
+                        }
+                    };
+                }
+            }
+            
+            // Google Apps Script URLが設定されていない場合
+            console.warn('⚠️ Google Apps Script URLが設定されていません');
+            console.warn('🔧 [DEBUG] 現在の設定:', {
+                hasConfig: !!window.QR_SCANNER_CONFIG,
+                hasUrl: !!(window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL),
+                url: window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL
+            });
+            return {
+                success: false,
+                config: {
+                    pin: '1234',
+                    max_attempts: 3
+                }
+            };
+        }
+        
         static async getTicketData(ticketNumber) {
             // 1. Google Apps Scriptを優先的に使用
             if (window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
                 try {
-                    console.log('Using Google Apps Script API...');
+                    // API呼び出し中
                     const response = await fetch(`${CONFIG.SHEETS.GAS_URL}?ticket_number=${encodeURIComponent(ticketNumber)}`);
                     const result = await response.json();
                     
                     if (result.success && result.data) {
-                        console.log('✅ Data retrieved from Google Apps Script');
+                        // データ取得成功
                         return result.data;
                     } else {
                         console.warn('Ticket not found in Google Apps Script:', result.error);
@@ -117,7 +212,7 @@
                     return null;
                 }
                 
-                console.log('Using Google Sheets API...');
+                // Sheets API使用
                 const range = `${CONFIG.SHEETS.SHEET_NAME}!A:M`;
                 const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEETS.SPREADSHEET_ID}/values/${range}?key=${CONFIG.SHEETS.API_KEY}`;
                 
@@ -195,7 +290,7 @@
             // 1. Google Apps Scriptを優先的に使用（JSONPでCORSを回避）
             if (window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
                 try {
-                    console.log('Updating entry status via Google Apps Script...');
+                    // 入場状況更新中
                     
                     // フォールバック: シンプルなGETリクエスト（no-cors モード）
                     const url = `${window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL}?ticket_number=${encodeURIComponent(ticketNumber)}&status=${encodeURIComponent(status)}&action=update&t=${Date.now()}`;
@@ -215,7 +310,7 @@
             }
             
             // 2. フォールバック（ログ出力のみ）
-            console.log(`Entry status update requested (no API configured): ${ticketNumber} -> ${status}`);
+            // API未設定のため更新スキップ
             return true; // UIの動作を継続するためtrueを返す
         }
         
@@ -310,7 +405,7 @@
             }
             
             this.bindEvents();
-            this.initCamera();
+            // カメラの自動起動を削除（認証後に手動で起動）
         }
 
         bindEvents() {
@@ -531,13 +626,22 @@
         }
 
         closeCamera() {
+            // カメラを停止
+            this.stopScanning();
             this.cleanup();
-            // ここで前のページに戻るか、アプリを終了する処理
-            if (history.length > 1) {
-                history.back();
-            } else {
-                window.close();
+            
+            // メインアプリを非表示
+            document.getElementById('mainApp').style.display = 'none';
+            
+            // 認証画面を表示
+            document.getElementById('authScreen').classList.remove('hidden');
+            
+            // 認証マネージャーのPINをクリア
+            if (window.authManager) {
+                window.authManager.clearPin();
             }
+            
+            console.log('🔒 認証画面に戻りました');
         }
         
         toggleCamera() {
@@ -678,12 +782,33 @@
             try {
                 this.updateStatus('scanning', 'チケット情報を取得中...');
                 
-                // Google Sheets APIでチケット情報を取得
+                // 1. まずキャッシュから高速検索
+                if (window.dataSyncManager) {
+                    console.log(`🔍 [CACHE] チケット番号検索開始: ${ticketNumber}`);
+                    const startTime = performance.now();
+                    const cachedData = window.dataSyncManager.searchInCache(ticketNumber);
+                    const cacheTime = performance.now() - startTime;
+                    
+                    if (cachedData) {
+                        console.log(`✅ [CACHE] 検索成功! ${cacheTime.toFixed(2)}ms - チケット: ${cachedData.name} (${cachedData.ticketType})`);
+                        this.showTicketDetails(cachedData);
+                        this.updateStatus('success', '✅ チケットが確認されました（キャッシュ）');
+                        return;
+                    } else {
+                        console.log(`❌ [CACHE] チケットが見つかりませんでした ${cacheTime.toFixed(2)}ms`);
+                    }
+                }
+                
+                // 2. キャッシュにない場合はAPI検索
+                console.log(`🌐 [API] Google Apps Script検索開始: ${ticketNumber}`);
+                const apiStartTime = performance.now();
                 const ticketData = await SheetsAPI.getTicketData(ticketNumber);
+                const apiTime = performance.now() - apiStartTime;
                 
                 if (ticketData) {
+                    console.log(`✅ [API] 検索成功! ${apiTime.toFixed(2)}ms - チケット: ${ticketData.name} (${ticketData.ticketType})`);
                     this.showTicketDetails(ticketData);
-                    this.updateStatus('success', '✅ チケットが確認されました');
+                    this.updateStatus('success', '✅ チケットが確認されました（API）');
                 } else {
                     // フォールバック: モックデータを確認
                     await this.displayCustomerInfo(ticketNumber);
@@ -731,7 +856,8 @@
             
             const isEntered = data.entryStatus === '入場済み' || 
                              data.entryStatus === 'entered' ||
-                             data.entryStatus === '入場済';
+                             data.entryStatus === '入場済' ||
+                             data.entryStatus === '使用済み';
             
             // ステータス用のバッジスタイル（白背景に緑ボーダー）
             const paymentBadgeStyle = isPaid ? 'background: white; color: #4CAF50; border: 1px solid #4CAF50;' : 'background: white; color: #ef4444; border: 1px solid #ef4444;';
@@ -968,6 +1094,19 @@
                 // Google Sheets APIで入場状況を更新
                 await SheetsAPI.updateEntryStatus(ticketNumber, '入場済');
                 
+                // ローカルキャッシュも更新
+                if (window.dataSyncManager && window.dataSyncManager.ticketCache) {
+                    const cacheIndex = window.dataSyncManager.ticketCache.findIndex(
+                        t => t.ticketNumber === ticketNumber
+                    );
+                    
+                    if (cacheIndex !== -1) {
+                        window.dataSyncManager.ticketCache[cacheIndex].entryStatus = '入場済';
+                        // LocalStorageも更新して永続化
+                        localStorage.setItem('venue_tickets', JSON.stringify(window.dataSyncManager.ticketCache));
+                    }
+                }
+                
                 this.updateStatus('success', '✅ 入場が承認されました');
                 
                 // ボタンを使用済みに変更
@@ -1181,13 +1320,41 @@
             try {
                 this.updateStatus('scanning', '部分番号で検索中...');
                 
-                // Google Apps Scriptで部分検索
+                // 1. まずキャッシュから高速検索
+                if (window.dataSyncManager && window.dataSyncManager.ticketCache) {
+                    console.log(`🔍 [CACHE] 部分検索開始: "${partialNumber}" (キャッシュ件数: ${window.dataSyncManager.ticketCache.length}件)`);
+                    const startTime = performance.now();
+                    const matches = window.dataSyncManager.ticketCache.filter(ticket => 
+                        ticket.ticketNumber && ticket.ticketNumber.toLowerCase().endsWith(partialNumber.toLowerCase())
+                    );
+                    const cacheTime = performance.now() - startTime;
+                    
+                    if (matches.length === 1) {
+                        console.log(`✅ [CACHE] 部分検索成功! ${cacheTime.toFixed(2)}ms - マッチ: ${matches[0].ticketNumber} (${matches[0].name})`);
+                        this.showTicketDetails(matches[0]);
+                        this.displayResult(matches[0].ticketNumber);
+                        this.updateStatus('success', '✅ チケットが見つかりました（キャッシュ）');
+                        return;
+                    } else if (matches.length > 1) {
+                        console.log(`⚠️ [CACHE] 部分検索で複数マッチ ${cacheTime.toFixed(2)}ms - ${matches.length}件: ${matches.map(m => m.ticketNumber).join(', ')}`);
+                        this.updateStatus('error', `❌ 複数のチケットが見つかりました。より詳しい番号を入力してください`);
+                        return;
+                    } else {
+                        console.log(`❌ [CACHE] 部分検索でマッチなし ${cacheTime.toFixed(2)}ms`);
+                    }
+                }
+                
+                // 2. キャッシュにない場合はAPI検索
+                console.log(`🌐 [API] 部分検索API開始: "${partialNumber}"`);
+                const apiStartTime = performance.now();
                 const ticketData = await SheetsAPI.searchTicketByPartial(partialNumber);
+                const apiTime = performance.now() - apiStartTime;
                 
                 if (ticketData) {
+                    console.log(`✅ [API] 部分検索成功! ${apiTime.toFixed(2)}ms - チケット: ${ticketData.ticketNumber} (${ticketData.name})`);
                     this.showTicketDetails(ticketData);
                     this.displayResult(partialNumber);
-                    this.updateStatus('success', '✅ チケットが見つかりました');
+                    this.updateStatus('success', '✅ チケットが見つかりました（API）');
                 } else {
                     // フォールバック: モックデータから検索
                     this.searchMockDataByPartial(partialNumber);

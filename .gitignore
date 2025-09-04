@@ -57,6 +57,9 @@ wordpress-functions/
 api-keys.json
 credentials.json
 
+# PINコード設定ファイル（セキュリティ）
+pin-config.js
+
 # Google Apps Script（機密情報含む）
 google-apps-script/
 *.gs

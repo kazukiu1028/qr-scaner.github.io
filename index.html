@@ -193,6 +193,234 @@
             display: none;
         }
         
+        /* データ同期ステータスボタン */
+        .sync-status-button {
+            position: absolute;
+            top: 68px;
+            left: 0;
+            border: none;
+            border-radius: 20px;
+            height: 40px;
+            padding: 0 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            z-index: 15;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        /* 未同期状態 (Declined) */
+        .sync-status-button.never {
+            background: #FFEBEE;
+            color: #F44336;
+        }
+        
+        /* 同期中状態 (Waiting) */
+        .sync-status-button.syncing {
+            background: #FFF3E0;
+            color: #F57C00;
+            animation: subtle-pulse 2s infinite;
+        }
+        
+        /* 同期済み状態 (Added/Accepted) */
+        .sync-status-button.synced {
+            background: #E8F5E8;
+            color: #4CAF50;
+        }
+        
+        /* エラー状態 (Declined) */
+        .sync-status-button.error {
+            background: #FFEBEE;
+            color: #F44336;
+        }
+        
+        /* 古いデータ状態 (Waiting) */
+        .sync-status-button.stale {
+            background: #FFF3E0;
+            color: #FF9800;
+        }
+        
+        .sync-status-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .sync-status-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        @keyframes subtle-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        #syncIcon {
+            font-size: 14px;
+            line-height: 1;
+        }
+        
+        /* 認証画面 */
+        .auth-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        .auth-screen.hidden {
+            display: none;
+        }
+        
+        .auth-container {
+            text-align: center;
+            padding: 48px 32px;
+            max-width: 420px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .auth-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #212529;
+            letter-spacing: -0.02em;
+        }
+        
+        .auth-subtitle {
+            font-size: 16px;
+            color: #6c757d;
+            margin-bottom: 48px;
+            font-weight: 400;
+        }
+        
+        .pin-container {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+        
+        .pin-digit {
+            width: 56px;
+            height: 56px;
+            border: 2px solid #e9ecef;
+            border-radius: 16px;
+            background: #f8f9fa;
+            color: #212529;
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .pin-digit.filled {
+            border-color: #007bff;
+            background: #e3f2fd;
+            color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+        }
+        
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            max-width: 240px;
+            margin: 0 auto 32px;
+        }
+        
+        .keypad-btn {
+            width: 64px;
+            height: 64px;
+            border: 2px solid #e9ecef;
+            border-radius: 50%;
+            background: white;
+            color: #495057;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        
+        .keypad-btn:hover {
+            border-color: #007bff;
+            background: #f8f9fa;
+            color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+        }
+        
+        .keypad-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,123,255,0.1);
+        }
+        
+        .keypad-btn:disabled {
+            background: #f8f9fa;
+            color: #adb5bd;
+            cursor: not-allowed;
+            border-color: #dee2e6;
+        }
+        
+        .keypad-btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .auth-error {
+            color: #dc3545;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 16px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #dc3545;
+            border-radius: 8px;
+            transform: translateY(-4px);
+            position: relative;
+            z-index: 1000;
+            display: block;
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .auth-error.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        #syncLabel {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
         /* シャッターボタン */
         .shutter-container {
             position: absolute;
@@ -431,7 +659,39 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- 認証画面 -->
+    <div id="authScreen" class="auth-screen">
+        <div class="auth-container">
+            <h1 class="auth-title">🎫 Pellamori</h1>
+            <p class="auth-subtitle">スタッフ認証</p>
+            
+            <div class="pin-container">
+                <div class="pin-digit" id="pin1"></div>
+                <div class="pin-digit" id="pin2"></div>
+                <div class="pin-digit" id="pin3"></div>
+                <div class="pin-digit" id="pin4"></div>
+            </div>
+            
+            <div class="keypad">
+                <button class="keypad-btn" onclick="addPin('1')">1</button>
+                <button class="keypad-btn" onclick="addPin('2')">2</button>
+                <button class="keypad-btn" onclick="addPin('3')">3</button>
+                <button class="keypad-btn" onclick="addPin('4')">4</button>
+                <button class="keypad-btn" onclick="addPin('5')">5</button>
+                <button class="keypad-btn" onclick="addPin('6')">6</button>
+                <button class="keypad-btn" onclick="addPin('7')">7</button>
+                <button class="keypad-btn" onclick="addPin('8')">8</button>
+                <button class="keypad-btn" onclick="addPin('9')">9</button>
+                <button class="keypad-btn" onclick="clearPin()">×</button>
+                <button class="keypad-btn" onclick="addPin('0')">0</button>
+                <button class="keypad-btn" onclick="deletePin()">⌫</button>
+            </div>
+            
+            <div class="auth-error" id="authError"></div>
+        </div>
+    </div>
+
+    <div class="container" id="mainApp" style="display: none;">
         <div class="header">
             <h1>🎫 チケット確認</h1>
             <p id="headerMessage">カメラを起動中...</p>
@@ -483,6 +743,12 @@
                     <button id="cameraOffBtn" class="control-btn camera-off-btn" title="カメラをオフ">📷</button>
                     <button id="testBtn" class="control-btn test-btn" onclick="document.getElementById('manualInput').style.display='block'" title="手動入力">✏️</button>
                 </div>
+                
+                <!-- データ同期ボタン -->
+                <button id="syncBtn" class="sync-status-button" title="データ同期">
+                    <span id="syncIcon">🔄</span>
+                    <span id="syncLabel">未同期</span>
+                </button>
             </div>
             
             <!-- シャッターボタン -->
@@ -624,6 +890,342 @@
                     });
             });
         }
+        
+        // データ同期コンポーネント
+        class DataSyncManager {
+            constructor() {
+                this.syncBtn = document.getElementById('syncBtn');
+                this.syncIcon = document.getElementById('syncIcon');
+                this.syncLabel = document.getElementById('syncLabel');
+                this.ticketCache = null;
+                this.lastSyncTime = null;
+                
+                this.init();
+            }
+            
+            init() {
+                // ボタンクリックイベント
+                this.syncBtn.addEventListener('click', () => {
+                    this.syncData();
+                });
+                
+                // 初期状態をチェック
+                this.checkCacheStatus();
+            }
+            
+            checkCacheStatus() {
+                const cached = localStorage.getItem('venue_tickets');
+                const syncTime = localStorage.getItem('last_sync_time');
+                
+                if (cached && syncTime) {
+                    const lastSync = new Date(syncTime);
+                    const now = new Date();
+                    const hoursDiff = (now - lastSync) / (1000 * 60 * 60);
+                    
+                    if (hoursDiff < 2) {
+                        // 2時間以内は同期済み状態
+                        this.setSyncState('synced', JSON.parse(cached), lastSync);
+                    } else {
+                        // 古いデータ
+                        this.setSyncState('stale', JSON.parse(cached), lastSync);
+                    }
+                } else {
+                    this.setSyncState('never');
+                }
+            }
+            
+            async syncData() {
+                if (this.syncBtn.classList.contains('syncing')) {
+                    return; // 既に同期中
+                }
+                
+                this.setSyncState('syncing');
+                
+                try {
+                    // Google Apps Script から全データを取得
+                    const tickets = await this.fetchAllTickets();
+                    
+                    // ローカルストレージに保存
+                    localStorage.setItem('venue_tickets', JSON.stringify(tickets));
+                    localStorage.setItem('last_sync_time', new Date().toISOString());
+                    
+                    this.setSyncState('synced', tickets, new Date());
+                    
+                    // 成功通知
+                    this.showSyncNotification(`✅ ${tickets.length}件のチケットを同期しました`);
+                    
+                } catch (error) {
+                    console.error('Sync failed:', error);
+                    this.setSyncState('error');
+                    this.showSyncNotification('❌ 同期に失敗しました');
+                }
+            }
+            
+            async fetchAllTickets() {
+                if (!window.QR_SCANNER_CONFIG?.GOOGLE_APPS_SCRIPT_URL) {
+                    throw new Error('Google Apps Script URL not configured');
+                }
+                
+                const url = `${window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL}?action=get_all_tickets&t=${Date.now()}`;
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'API returned error');
+                }
+                
+                return result.tickets || [];
+            }
+            
+            setSyncState(state, data = null, syncTime = null) {
+                // ボタンの状態を更新
+                this.syncBtn.className = `sync-status-button ${state}`;
+                
+                switch (state) {
+                    case 'never':
+                        this.syncIcon.textContent = '❌';
+                        this.syncLabel.textContent = '同期';
+                        this.syncBtn.title = 'データを同期してください';
+                        break;
+                        
+                    case 'syncing':
+                        this.syncIcon.textContent = '⏳';
+                        this.syncLabel.textContent = '同期中';
+                        this.syncBtn.title = '同期中...';
+                        break;
+                        
+                    case 'synced':
+                        this.syncIcon.textContent = '✅';
+                        this.syncLabel.textContent = '同期';
+                        this.syncBtn.title = `同期完了: ${data?.length || 0}件`;
+                        this.ticketCache = data;
+                        break;
+                        
+                    case 'stale':
+                        this.syncIcon.textContent = '⚠️';
+                        this.syncLabel.textContent = '古いデータ';
+                        this.syncBtn.title = 'データが古い可能性があります';
+                        this.ticketCache = data;
+                        break;
+                        
+                    case 'error':
+                        this.syncIcon.textContent = '❌';
+                        this.syncLabel.textContent = 'エラー';
+                        this.syncBtn.title = '同期エラー - 再試行してください';
+                        break;
+                }
+                
+                this.lastSyncTime = syncTime;
+            }
+            
+            formatTime(date) {
+                if (!date) return '';
+                return date.toLocaleTimeString('ja-JP', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
+            
+            showSyncNotification(message) {
+                // 既存のステータス表示を利用
+                if (window.qrScanner) {
+                    window.qrScanner.updateStatus('success', message);
+                    setTimeout(() => {
+                        window.qrScanner.updateStatus('ready', 'シャッターボタンを押してスキャン');
+                    }, 3000);
+                }
+            }
+            
+            // 高速検索用のメソッド
+            searchInCache(ticketNumber) {
+                if (!this.ticketCache) return null;
+                
+                return this.ticketCache.find(ticket => 
+                    ticket.ticketNumber === ticketNumber ||
+                    ticket.ticketNumber.toLowerCase().endsWith(ticketNumber.toLowerCase())
+                );
+            }
+        }
+        
+        // PINコード認証システム
+        class AuthManager {
+            constructor() {
+                this.correctPin = null; // Google Sheetsから取得
+                this.currentPin = '';
+                this.maxAttempts = 3;
+                this.attempts = 0;
+                this.isLoading = false;
+                
+                // 起動時にPINを取得
+                this.fetchPinFromSheet();
+            }
+            
+            async fetchPinFromSheet() {
+                this.isLoading = true;
+                try {
+                    // 既存のチケット検索と同じ方法でGoogle Apps Scriptから設定を取得
+                    const url = `${window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL}?action=get_config&t=${Date.now()}`;
+                    
+                    const response = await fetch(url);
+                    const result = await response.json();
+                    
+                    if (result.success && result.config) {
+                        this.correctPin = result.config.pin || '1234';
+                        this.maxAttempts = result.config.max_attempts || 3;
+                    } else {
+                        this.correctPin = '1234';
+                        this.maxAttempts = 3;
+                    }
+                } catch (error) {
+                    // エラー時はデフォルト値を使用
+                    this.correctPin = '1234';
+                    this.maxAttempts = 3;
+                } finally {
+                    this.isLoading = false;
+                }
+            }
+            
+            addPin(digit) {
+                if (this.currentPin.length < 4) {
+                    this.currentPin += digit;
+                    this.updatePinDisplay();
+                    
+                    if (this.currentPin.length === 4) {
+                        setTimeout(() => this.validatePin(), 300);
+                    }
+                }
+            }
+            
+            deletePin() {
+                if (this.currentPin.length > 0) {
+                    this.currentPin = this.currentPin.slice(0, -1);
+                    this.updatePinDisplay();
+                }
+            }
+            
+            clearPin() {
+                this.currentPin = '';
+                this.updatePinDisplay();
+                // エラーメッセージは残す（validatePinから呼ばれた場合）
+                // hideError()は手動でクリアボタンを押した時のみ
+            }
+            
+            clearPinWithError() {
+                this.currentPin = '';
+                this.updatePinDisplay();
+                this.hideError();
+            }
+            
+            updatePinDisplay() {
+                for (let i = 1; i <= 4; i++) {
+                    const pinElement = document.getElementById(`pin${i}`);
+                    if (i <= this.currentPin.length) {
+                        pinElement.textContent = '●';
+                        pinElement.classList.add('filled');
+                    } else {
+                        pinElement.textContent = '';
+                        pinElement.classList.remove('filled');
+                    }
+                }
+            }
+            
+            async validatePin() {
+                // 設定が読み込まれていない場合は待機
+                if (this.isLoading || !this.correctPin) {
+                    this.showError('設定を読み込み中です...');
+                    return;
+                }
+                
+                // PINコードの比較（型も含めて厳密に）
+                if (String(this.currentPin) === String(this.correctPin)) {
+                    this.onAuthSuccess();
+                } else {
+                    this.attempts++;
+                    if (this.attempts >= this.maxAttempts) {
+                        this.showError(`認証に${this.maxAttempts}回失敗しました。アプリを再読み込みしてください。`);
+                        this.lockInterface();
+                    } else {
+                        this.showError(`PINコードが違います。（残り${this.maxAttempts - this.attempts}回）`);
+                        // clearPinの前に少し待機して、エラーメッセージを表示
+                        setTimeout(() => {
+                            this.clearPin();
+                        }, 100);
+                    }
+                }
+            }
+            
+            onAuthSuccess() {
+                // 認証成功時の処理
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('mainApp').style.display = 'block';
+                
+                // カメラとデータ同期マネージャーを初期化
+                this.initializeApp();
+            }
+            
+            initializeApp() {
+                // データ同期マネージャーを初期化
+                if (!window.dataSyncManager) {
+                    window.dataSyncManager = new DataSyncManager();
+                }
+                
+                // QRスキャナーを初期化
+                if (typeof window.qrScanner === 'undefined') {
+                    window.qrScanner = new QRCodeScanner();
+                }
+                
+                // カメラを起動（認証成功後のみ）
+                setTimeout(() => {
+                    window.qrScanner.initCamera();
+                }, 100);
+            }
+            
+            showError(message) {
+                const errorElement = document.getElementById('authError');
+                errorElement.textContent = message;
+                errorElement.classList.add('show');
+            }
+            
+            hideError() {
+                const errorElement = document.getElementById('authError');
+                errorElement.classList.remove('show');
+            }
+            
+            lockInterface() {
+                // インターフェースをロック
+                const keypadButtons = document.querySelectorAll('.keypad-btn');
+                keypadButtons.forEach(btn => btn.disabled = true);
+            }
+        }
+        
+        // グローバル関数（HTMLから呼び出される）
+        let authManager;
+        
+        function addPin(digit) {
+            authManager.addPin(digit);
+        }
+        
+        function deletePin() {
+            authManager.deletePin();
+        }
+        
+        function clearPin() {
+            authManager.clearPinWithError();
+        }
+
+        // アプリ初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            authManager = new AuthManager();
+        });
     </script>
 </body>
 </html>
