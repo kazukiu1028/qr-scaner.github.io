@@ -152,17 +152,26 @@
 
         async initCamera() {
             try {
+                console.log('🎥 カメラ初期化を開始');
+                this.updateHeaderMessage('カメラを初期化中...');
+                
                 // 許可状態をチェック
                 await this.checkCameraPermissions();
+                console.log('✅ カメラ許可チェック完了');
                 
                 const devices = await this.getVideoDevices();
+                console.log('📹 利用可能なカメラデバイス:', devices.length);
                 this.updateCameraList(devices);
                 
                 const defaultDevice = this.selectDefaultDevice(devices);
                 if (defaultDevice) {
+                    console.log('🎯 選択されたデバイス:', defaultDevice.label || 'Unknown');
                     await this.startCamera(defaultDevice.deviceId);
+                } else {
+                    throw new Error('利用可能なカメラデバイスが見つかりません');
                 }
             } catch (error) {
+                console.error('❌ カメラ初期化エラー:', error);
                 this.handleCameraError('カメラへのアクセスが拒否されました', error);
             }
         }
@@ -216,15 +225,25 @@
 
         async startCamera(deviceId) {
             try {
+                console.log('🚀 カメラ起動開始:', deviceId);
+                this.updateHeaderMessage('カメラを起動中...');
+                
                 this.stopCurrentStream();
                 
                 const constraints = this.buildConstraints(deviceId);
+                console.log('📝 カメラ制約:', constraints);
+                
                 this.state.currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('✅ MediaStream取得成功');
                 
                 this.elements.video.srcObject = this.state.currentStream;
+                console.log('📺 ビデオ要素にストリーム設定');
+                
                 await this.elements.video.play();
+                console.log('▶️ ビデオ再生開始');
                 
                 this.elements.video.addEventListener('loadedmetadata', () => {
+                    console.log('🎬 ビデオメタデータ読み込み完了');
                     this.setupCanvas();
                 }, { once: true });
                 
@@ -232,7 +251,9 @@
                 this.hideCameraPlaceholder();
                 this.updateHeaderMessage('QRコードをスキャン');
                 this.updateStatus('ready', 'シャッターボタンを押してスキャン');
+                console.log('🎉 カメラ起動完了');
             } catch (error) {
+                console.error('❌ カメラ起動エラー:', error);
                 this.handleCameraError('カメラの起動に失敗しました', error);
             }
         }
@@ -604,8 +625,12 @@
         }
 
         updateHeaderMessage(message) {
+            console.log('📝 ヘッダーメッセージ更新:', message);
             if (this.elements.headerMessage) {
                 this.elements.headerMessage.textContent = message;
+                console.log('✅ ヘッダーメッセージ更新成功');
+            } else {
+                console.warn('⚠️ headerMessage要素が見つかりません');
             }
         }
 
