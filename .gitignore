@@ -57,6 +57,10 @@ wordpress-functions/
 api-keys.json
 credentials.json
 
+# Google Apps Script（機密情報含む）
+google-apps-script/
+*.gs
+
 # GitHub関連テンプレート
 .github/
 
