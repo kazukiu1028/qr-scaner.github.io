@@ -482,6 +482,7 @@
                 <div style="display: flex; gap: 10px;">
                     <button id="cameraOffBtn" class="control-btn camera-off-btn" title="カメラをオフ">📷</button>
                     <button id="testBtn" class="control-btn test-btn" onclick="document.getElementById('manualInput').style.display='block'" title="手動入力">✏️</button>
+                    <button id="qrGenBtn" class="control-btn" onclick="toggleQRGenerator()" title="QRコード生成">🔲</button>
                 </div>
             </div>
             
@@ -544,6 +545,63 @@
                     cursor: pointer;
                     font-size: 30px;
                 ">×</button>
+            </div>
+            
+            <!-- QRコード生成テスト -->
+            <div style="
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 15px;
+                border-radius: 10px;
+                max-width: 300px;
+                display: none;
+                z-index: 25;
+            " id="qrGenerator">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div style="font-size: 14px; font-weight: 600;">🔲 テスト用QRコード生成</div>
+                    <button onclick="document.getElementById('qrGenerator').style.display='none'" style="
+                        background: none;
+                        border: none;
+                        color: #ccc;
+                        cursor: pointer;
+                        font-size: 20px;
+                        padding: 0;
+                    ">×</button>
+                </div>
+                
+                <select id="qrType" style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ddd;">
+                    <option value="ticket">チケット番号</option>
+                    <option value="partial">部分番号（4桁）</option>
+                    <option value="session">Session ID</option>
+                    <option value="custom">カスタム</option>
+                </select>
+                
+                <input type="text" id="qrText" placeholder="テキストを入力" style="
+                    width: 100%;
+                    padding: 8px;
+                    margin-bottom: 10px;
+                    border-radius: 4px;
+                    border: 1px solid #ddd;
+                    font-family: monospace;
+                ">
+                
+                <button onclick="generateQR()" style="
+                    width: 100%;
+                    padding: 10px;
+                    background: #4CAF50;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    margin-bottom: 10px;
+                ">QRコード生成</button>
+                
+                <div id="qrDisplay" style="text-align: center; min-height: 100px; border: 1px dashed #555; border-radius: 4px; padding: 10px;">
+                    <div style="color: #999; font-size: 12px;">QRコードがここに表示されます</div>
+                </div>
             </div>
             
             <div class="error-message" id="errorMessage" role="alert" aria-live="assertive"></div>
@@ -624,6 +682,68 @@
                     });
             });
         }
+        
+        // QRコード生成機能
+        function toggleQRGenerator() {
+            const generator = document.getElementById('qrGenerator');
+            const isVisible = generator.style.display !== 'none';
+            generator.style.display = isVisible ? 'none' : 'block';
+            
+            if (!isVisible) {
+                // デフォルト値を設定
+                updateQRPresets();
+            }
+        }
+        
+        function updateQRPresets() {
+            const type = document.getElementById('qrType').value;
+            const input = document.getElementById('qrText');
+            
+            const presets = {
+                ticket: 'TKT-20250904-0001',
+                partial: '0001', 
+                session: 'cs_test_123456789',
+                custom: ''
+            };
+            
+            input.placeholder = presets[type] || 'テキストを入力';
+            if (type !== 'custom') {
+                input.value = presets[type];
+            }
+        }
+        
+        async function generateQR() {
+            const text = document.getElementById('qrText').value.trim();
+            const display = document.getElementById('qrDisplay');
+            
+            if (!text) {
+                display.innerHTML = '<div style="color: #ff6b6b;">テキストを入力してください</div>';
+                return;
+            }
+            
+            try {
+                display.innerHTML = '<div style="color: #4CAF50;">QRコード生成中...</div>';
+                
+                // QR Code Generator API (無料サービス)
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(text)}`;
+                
+                display.innerHTML = `
+                    <img src="${qrUrl}" alt="Generated QR Code" style="max-width: 100%; border-radius: 4px;">
+                    <div style="font-size: 10px; color: #ccc; margin-top: 8px; word-break: break-all;">${text}</div>
+                `;
+                
+            } catch (error) {
+                display.innerHTML = '<div style="color: #ff6b6b;">生成に失敗しました</div>';
+            }
+        }
+        
+        // QRタイプ変更時のプリセット更新
+        document.addEventListener('DOMContentLoaded', function() {
+            const qrType = document.getElementById('qrType');
+            if (qrType) {
+                qrType.addEventListener('change', updateQRPresets);
+            }
+        });
     </script>
 </body>
 </html>
