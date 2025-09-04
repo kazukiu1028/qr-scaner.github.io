@@ -22,6 +22,43 @@
         }
     };
 
+    // モックデータ（デモ用）
+    const MOCK_CUSTOMER_DATA = {
+        'cs_test_123456789': {
+            name: '田中 太郎',
+            email: 'tanaka@example.com',
+            phone: '090-1234-5678',
+            event: '夏祭りコンサート',
+            ticketType: 'VIP席',
+            quantity: 2,
+            amount: 15000,
+            purchaseDate: '2024-09-01 14:30',
+            status: 'paid'
+        },
+        'cs_test_987654321': {
+            name: '佐藤 花子',
+            email: 'sato@example.com',
+            phone: '080-9876-5432',
+            event: '秋の音楽フェス',
+            ticketType: '一般席',
+            quantity: 1,
+            amount: 8000,
+            purchaseDate: '2024-09-02 10:15',
+            status: 'paid'
+        },
+        'cs_test_555666777': {
+            name: '山田 次郎',
+            email: 'yamada@example.com',
+            phone: '070-5555-6666',
+            event: 'クリスマス特別公演',
+            ticketType: 'プレミアム席',
+            quantity: 4,
+            amount: 32000,
+            purchaseDate: '2024-09-03 16:45',
+            status: 'paid'
+        }
+    };
+
     // QRスキャナークラス
     class QRScanner {
         constructor() {
@@ -282,16 +319,106 @@
 
         parseTicketData(data) {
             try {
-                if (this.isSessionUrl(data)) {
-                    this.displaySessionInfo(data);
+                // Session IDを抽出
+                const sessionId = this.extractSessionId(data);
+                if (sessionId) {
+                    this.displayCustomerInfo(sessionId);
                 } else if (this.isJsonData(data)) {
                     this.displayJsonInfo(data);
                 } else if (this.isUrl(data)) {
                     this.displayUrlInfo(data);
+                } else {
+                    // 直接session_idの場合
+                    if (data.startsWith('cs_test_') || data.startsWith('cs_')) {
+                        this.displayCustomerInfo(data);
+                    }
                 }
             } catch (error) {
                 console.error('チケットデータの解析エラー:', error);
             }
+        }
+
+        extractSessionId(data) {
+            // URLからsession_idを抽出
+            if (data.includes('session_id=')) {
+                const url = new URL(data);
+                return url.searchParams.get('session_id');
+            }
+            // 直接session_idの場合
+            if (data.startsWith('cs_')) {
+                return data;
+            }
+            return null;
+        }
+
+        async displayCustomerInfo(sessionId) {
+            // モックデータから顧客情報を取得
+            const customerData = MOCK_CUSTOMER_DATA[sessionId];
+            
+            if (customerData) {
+                this.showCustomerDetails(customerData);
+                this.updateStatus('success', '✅ チケットが確認されました');
+            } else {
+                this.showTicketInfo(`
+                    <div style="color: #f44336;">
+                        <strong>❌ チケットが見つかりません</strong><br>
+                        <small>Session ID: ${this.escapeHtml(sessionId)}</small>
+                    </div>
+                `);
+                this.updateStatus('error', 'チケットが見つかりません');
+            }
+        }
+
+        showCustomerDetails(data) {
+            const statusColor = data.status === 'paid' ? '#4CAF50' : '#f44336';
+            const statusText = data.status === 'paid' ? '✅ 支払い済み' : '❌ 未払い';
+            
+            this.showTicketInfo(`
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong style="font-size: 18px; color: #333;">${this.escapeHtml(data.name)}</strong>
+                        <span style="color: ${statusColor}; font-weight: bold; font-size: 14px;">${statusText}</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-size: 12px; color: #666; margin-bottom: 2px;">メール</div>
+                            <div style="font-size: 14px; font-weight: 500;">${this.escapeHtml(data.email)}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #666; margin-bottom: 2px;">電話番号</div>
+                            <div style="font-size: 14px; font-weight: 500;">${this.escapeHtml(data.phone)}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="font-size: 16px; font-weight: 600; color: #1976d2; margin-bottom: 8px;">
+                            🎫 ${this.escapeHtml(data.event)}
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <span style="color: #666;">席種:</span>
+                                <strong>${this.escapeHtml(data.ticketType)}</strong>
+                            </div>
+                            <div>
+                                <span style="color: #666;">枚数:</span>
+                                <strong>${data.quantity}枚</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                        <div>
+                            <div style="font-size: 12px; color: #666;">購入金額</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #2e7d32;">¥${data.amount.toLocaleString()}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 12px; color: #666;">購入日時</div>
+                            <div style="font-size: 13px; font-weight: 500;">${data.purchaseDate}</div>
+                        </div>
+                    </div>
+                </div>
+            `);
         }
 
         isSessionUrl(data) {
@@ -350,11 +477,46 @@
         }
 
         showVerificationResult() {
-            // スタンドアロンでは簡易的な確認表示
-            this.updateStatus('success', '✅ QRコードを確認しました');
-            this.elements.verifyBtn.textContent = '確認済み';
-            this.elements.verifyBtn.className = 'btn btn-secondary';
-            this.elements.verifyBtn.disabled = true;
+            const btn = this.elements.verifyBtn;
+            
+            // ローディング表示
+            btn.disabled = true;
+            btn.innerHTML = '確認中... <span class="loading-spinner"></span>';
+            
+            // 1秒後に結果表示（実際のAPIコール風の演出）
+            setTimeout(() => {
+                this.updateStatus('success', '✅ 入場が承認されました');
+                btn.textContent = '入場承認済み';
+                btn.className = 'btn btn-success';
+                btn.style.background = '#4CAF50';
+                
+                // 成功音を再生
+                this.playSuccessSound();
+                
+                // 確認済みのマークを追加
+                const ticketInfo = this.elements.ticketDetails;
+                if (ticketInfo && !ticketInfo.querySelector('.verified-badge')) {
+                    const verifiedBadge = document.createElement('div');
+                    verifiedBadge.className = 'verified-badge';
+                    verifiedBadge.innerHTML = `
+                        <div style="
+                            background: #4CAF50;
+                            color: white;
+                            padding: 8px 16px;
+                            border-radius: 20px;
+                            font-size: 14px;
+                            font-weight: 600;
+                            text-align: center;
+                            margin-top: 15px;
+                            animation: fadeIn 0.3s ease;
+                        ">
+                            ✅ 入場確認済み<br>
+                            <small style="opacity: 0.9;">${new Date().toLocaleString('ja-JP')}</small>
+                        </div>
+                    `;
+                    ticketInfo.appendChild(verifiedBadge);
+                }
+            }, 1000);
         }
 
         resetScanner() {

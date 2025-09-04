@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRコード生成テスト</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .qr-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .qr-code {
+            margin: 20px 0;
+        }
+        
+        .customer-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .event-name {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .session-id {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+            background: #f5f5f5;
+            padding: 5px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            background: #45a049;
+        }
+        
+        .scanner-link {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .scanner-link a {
+            display: inline-block;
+            background: #1976d2;
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .scanner-link a:hover {
+            background: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎫 QRコード生成テスト</h1>
+        <p>デモ用の顧客データからQRコードを生成します</p>
+    </div>
+    
+    <div class="qr-grid" id="qrGrid">
+        <!-- QRコードがここに生成される -->
+    </div>
+    
+    <div class="scanner-link">
+        <a href="index.html">📷 QRスキャナーを開く</a>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>
+    <script>
+        // モックデータ
+        const mockData = {
+            'cs_test_123456789': {
+                name: '田中 太郎',
+                event: '夏祭りコンサート',
+                ticketType: 'VIP席',
+                quantity: 2,
+                amount: 15000
+            },
+            'cs_test_987654321': {
+                name: '佐藤 花子',
+                event: '秋の音楽フェス',
+                ticketType: '一般席',
+                quantity: 1,
+                amount: 8000
+            },
+            'cs_test_555666777': {
+                name: '山田 次郎',
+                event: 'クリスマス特別公演',
+                ticketType: 'プレミアム席',
+                quantity: 4,
+                amount: 32000
+            }
+        };
+
+        // QRコードを生成する関数
+        function generateQRCode(sessionId, data) {
+            const card = document.createElement('div');
+            card.className = 'qr-card';
+            
+            card.innerHTML = `
+                <div class="customer-name">${data.name}</div>
+                <div class="event-name">${data.event}</div>
+                <div class="qr-code" id="qr-${sessionId}"></div>
+                <div class="session-id">${sessionId}</div>
+                <div style="font-size: 14px; color: #666;">
+                    ${data.ticketType} × ${data.quantity}枚<br>
+                    ¥${data.amount.toLocaleString()}
+                </div>
+                <button class="btn" onclick="downloadQR('qr-${sessionId}', '${data.name}')">
+                    QRコードをダウンロード
+                </button>
+            `;
+            
+            document.getElementById('qrGrid').appendChild(card);
+            
+            // QRコードを生成
+            QRCode.toCanvas(document.getElementById(`qr-${sessionId}`), sessionId, {
+                width: 200,
+                height: 200,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // QRコードをダウンロードする関数
+        function downloadQR(elementId, customerName) {
+            const canvas = document.querySelector(`#${elementId} canvas`);
+            const link = document.createElement('a');
+            link.download = `qr-${customerName}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // ページ読み込み時にQRコードを生成
+        document.addEventListener('DOMContentLoaded', () => {
+            Object.entries(mockData).forEach(([sessionId, data]) => {
+                generateQRCode(sessionId, data);
+            });
+        });
+    </script>
+</body>
+</html>
