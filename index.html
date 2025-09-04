@@ -401,11 +401,43 @@
     <div class="container">
         <div class="header">
             <h1>🎫 チケット確認</h1>
+            <p id="headerMessage">カメラを起動中...</p>
         </div>
         
         <div class="scanner-container">
             <video id="video" autoplay playsinline></video>
             <canvas id="canvas"></canvas>
+            
+            <!-- カメラが起動しない場合の表示 -->
+            <div id="cameraPlaceholder" style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                color: white;
+                background: rgba(0,0,0,0.8);
+                padding: 30px;
+                border-radius: 15px;
+                max-width: 300px;
+                display: none;
+            ">
+                <div style="font-size: 48px; margin-bottom: 15px;">📷</div>
+                <h3 style="margin-bottom: 10px;">カメラアクセスが必要です</h3>
+                <p style="font-size: 14px; margin-bottom: 20px;">
+                    QRコードをスキャンするためにカメラの許可が必要です
+                </p>
+                <button id="retryCamera" style="
+                    background: #4CAF50;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 14px;
+                ">カメラを再試行</button>
+            </div>
+            
             <div class="scanner-overlay">
                 <div class="scanner-line" id="scannerLine"></div>
             </div>

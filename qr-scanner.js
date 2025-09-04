@@ -84,7 +84,10 @@
                 shutterBtn: document.getElementById('shutterBtn'),
                 closeBtn: document.getElementById('closeBtn'),
                 flashBtn: document.getElementById('flashBtn'),
-                scannerLine: document.getElementById('scannerLine')
+                scannerLine: document.getElementById('scannerLine'),
+                headerMessage: document.getElementById('headerMessage'),
+                cameraPlaceholder: document.getElementById('cameraPlaceholder'),
+                retryCamera: document.getElementById('retryCamera')
             };
         }
 
@@ -134,6 +137,11 @@
             // リセットボタン
             this.elements.resetBtn.addEventListener('click', () => {
                 this.resetScanner();
+            });
+
+            // 再試行ボタン
+            this.elements.retryCamera.addEventListener('click', () => {
+                this.retryCamera();
             });
 
             // ページ離脱時の処理
@@ -221,6 +229,8 @@
                 }, { once: true });
                 
                 this.hideError();
+                this.hideCameraPlaceholder();
+                this.updateHeaderMessage('QRコードをスキャン');
                 this.updateStatus('ready', 'シャッターボタンを押してスキャン');
             } catch (error) {
                 this.handleCameraError('カメラの起動に失敗しました', error);
@@ -580,7 +590,29 @@
                 userMessage = 'カメラが他のアプリケーションで使用中です。';
             }
             
+            this.showCameraPlaceholder();
+            this.updateHeaderMessage('カメラエラー');
             this.showError(userMessage);
+        }
+
+        showCameraPlaceholder() {
+            this.elements.cameraPlaceholder.style.display = 'block';
+        }
+
+        hideCameraPlaceholder() {
+            this.elements.cameraPlaceholder.style.display = 'none';
+        }
+
+        updateHeaderMessage(message) {
+            if (this.elements.headerMessage) {
+                this.elements.headerMessage.textContent = message;
+            }
+        }
+
+        async retryCamera() {
+            this.updateHeaderMessage('カメラを再試行中...');
+            this.hideCameraPlaceholder();
+            await this.initCamera();
         }
 
         showError(message) {
