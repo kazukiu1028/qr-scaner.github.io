@@ -633,16 +633,61 @@
         }
     }
 
+    // jsQRライブラリを動的に読み込む関数
+    async function loadJsQR() {
+        if (typeof jsQR !== 'undefined') {
+            return true;
+        }
+
+        const cdnUrls = [
+            'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js',
+            'https://unpkg.com/jsqr@1.4.0/dist/jsQR.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js'
+        ];
+
+        for (const url of cdnUrls) {
+            try {
+                console.log(`Trying to load jsQR from: ${url}`);
+                await loadScript(url);
+                
+                if (typeof jsQR !== 'undefined') {
+                    console.log('✅ jsQR loaded successfully');
+                    return true;
+                }
+            } catch (error) {
+                console.warn(`Failed to load jsQR from ${url}:`, error);
+            }
+        }
+
+        console.error('❌ All jsQR CDN attempts failed');
+        return false;
+    }
+
+    // スクリプトを動的に読み込むヘルパー関数
+    function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
     // アプリケーション初期化
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         // 必要な機能チェック
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             alert('このブラウザはカメラ機能をサポートしていません');
             return;
         }
 
-        if (typeof jsQR === 'undefined') {
-            console.error('jsQRライブラリが読み込まれていません');
+        // jsQRライブラリの確認・読み込み
+        const jsQRLoaded = await loadJsQR();
+        if (!jsQRLoaded) {
+            const errorMsg = 'QRコード読み取りライブラリの読み込みに失敗しました。ページを再読み込みしてください。';
+            alert(errorMsg);
+            console.error(errorMsg);
             return;
         }
 

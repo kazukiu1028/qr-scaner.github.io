@@ -488,8 +488,15 @@
         </section>
     </div>
 
-    <!-- QRコード読み取りライブラリ -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+    <!-- QRコード読み取りライブラリ（複数CDNでフォールバック） -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script>
+        // jsQRが読み込めない場合のフォールバック
+        if (typeof jsQR === 'undefined') {
+            console.warn('Primary jsQR CDN failed, trying backup...');
+            document.write('<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"><\/script>');
+        }
+    </script>
     
     <!-- 設定データ -->
     <script>
