@@ -631,6 +631,22 @@
             }
             this.stopCurrentStream();
         }
+
+        // テスト用：QRスキャンをシミュレート
+        simulateQRScan(data) {
+            if (!data || data.trim() === '') {
+                alert('セッションIDを入力してください');
+                return;
+            }
+            
+            console.log('🧪 Simulating QR scan:', data);
+            
+            // 手動入力パネルを閉じる
+            document.getElementById('manualInput').style.display = 'none';
+            
+            // QRスキャン処理をシミュレート
+            this.handleQRCode(data.trim());
+        }
     }
 
     // jsQRライブラリを動的に読み込む関数
