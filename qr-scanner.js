@@ -398,14 +398,14 @@
         }
 
         init() {
-            // カメラオフボタンの初期状態を設定
+            // カメラボタンの初期状態を設定（カメラはオン状態から開始）
             if (this.elements.cameraOffBtn) {
                 this.elements.cameraOffBtn.classList.add('camera-on');
                 this.elements.cameraOffBtn.title = 'カメラをオフ';
             }
             
             this.bindEvents();
-            // カメラの自動起動を削除（認証後に手動で起動）
+            // カメラは認証後にinitCamera()で起動される
         }
 
         bindEvents() {
@@ -661,21 +661,8 @@
                 }
                 this.showCameraPlaceholder();
                 
-                // プレースホルダーのテキストを変更
-                if (this.elements.cameraPlaceholder) {
-                    const titleElement = this.elements.cameraPlaceholder.querySelector('h3');
-                    const descElement = this.elements.cameraPlaceholder.querySelector('p');
-                    const buttonElement = this.elements.cameraPlaceholder.querySelector('button');
-                    
-                    if (titleElement) titleElement.textContent = 'カメラがオフです';
-                    if (descElement) descElement.textContent = 'カメラをオンにするには下のボタンまたは左上のカメラボタンを押してください';
-                    if (buttonElement) {
-                        buttonElement.textContent = 'カメラをオン';
-                        buttonElement.onclick = () => this.toggleCamera();
-                    }
-                }
             } else {
-                // カメラがオフの場合はオンにする
+                // カメラをオンにする
                 this.elements.cameraOffBtn.classList.add('camera-on');
                 this.elements.cameraOffBtn.title = 'カメラをオフ';
                 this.hideCameraPlaceholder();
@@ -1483,8 +1470,8 @@
             return;
         }
 
-        // QRスキャナー起動
-        window.qrScanner = new QRScanner();
+        // QRスキャナークラスをグローバルに公開（認証後に使用される）
+        window.QRScanner = QRScanner;
     });
 
 })();

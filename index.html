@@ -137,10 +137,16 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(10px);
+            background: transparent;
+            backdrop-filter: none;
             padding: 30px 20px;
+            padding-bottom: calc(30px + env(safe-area-inset-bottom));
             z-index: 10;
+            pointer-events: none;
+        }
+        
+        .controls > * {
+            pointer-events: auto;
         }
         
         /* カメラコントロール */
@@ -313,82 +319,45 @@
         .pin-container {
             display: flex;
             justify-content: center;
-            gap: 16px;
-            margin-bottom: 48px;
+            gap: 12px;
+            margin-bottom: 32px;
         }
         
-        .pin-digit {
+        .pin-input {
             width: 56px;
             height: 56px;
             border: 2px solid #e9ecef;
-            border-radius: 16px;
-            background: #f8f9fa;
+            border-radius: 12px;
+            background: white;
             color: #212529;
             font-size: 24px;
             font-weight: 600;
             text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             transition: all 0.2s ease;
+            -webkit-appearance: none;
         }
         
-        .pin-digit.filled {
+        .pin-input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .pin-input.filled {
             border-color: #007bff;
             background: #e3f2fd;
-            color: #007bff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,123,255,0.15);
         }
         
-        .keypad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-            max-width: 240px;
-            margin: 0 auto 32px;
+        .pin-input.error {
+            border-color: #dc3545;
+            animation: shake 0.3s ease;
         }
         
-        .keypad-btn {
-            width: 64px;
-            height: 64px;
-            border: 2px solid #e9ecef;
-            border-radius: 50%;
-            background: white;
-            color: #495057;
-            font-size: 20px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            user-select: none;
-        }
-        
-        .keypad-btn:hover {
-            border-color: #007bff;
-            background: #f8f9fa;
-            color: #007bff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,123,255,0.15);
-        }
-        
-        .keypad-btn:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0,123,255,0.1);
-        }
-        
-        .keypad-btn:disabled {
-            background: #f8f9fa;
-            color: #adb5bd;
-            cursor: not-allowed;
-            border-color: #dee2e6;
-        }
-        
-        .keypad-btn:disabled:hover {
-            transform: none;
-            box-shadow: none;
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
         }
         
         .auth-error {
@@ -415,6 +384,57 @@
             transform: translateY(0);
         }
         
+        .auth-sync-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            max-width: 280px;
+            margin: 0 auto 24px;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            background: #f8f9fa;
+            color: #495057;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .auth-sync-button:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .auth-sync-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .auth-sync-button.syncing {
+            background: #FFF3E0;
+            color: #F57C00;
+            animation: subtle-pulse 2s infinite;
+        }
+        
+        .auth-sync-button.synced {
+            background: #E8F5E8;
+            color: #4CAF50;
+        }
+        
+        .auth-sync-button.error {
+            background: #FFEBEE;
+            color: #F44336;
+        }
+        
+        .auth-sync-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
         #syncLabel {
             font-size: 14px;
             font-weight: 500;
@@ -424,7 +444,7 @@
         /* シャッターボタン */
         .shutter-container {
             position: absolute;
-            bottom: 90px;
+            bottom: calc(90px + env(safe-area-inset-bottom));
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
@@ -468,7 +488,7 @@
         /* ステータス表示をシンプルに */
         .status {
             position: absolute;
-            bottom: 190px;
+            bottom: calc(190px + env(safe-area-inset-bottom));
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.7);
@@ -509,6 +529,7 @@
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             padding: 20px;
+            padding-bottom: calc(30px + env(safe-area-inset-bottom));
             z-index: 15;
             display: none;
             border-radius: 20px 20px 0 0;
@@ -624,7 +645,7 @@
             margin-top: 15px;
             display: none;
             position: absolute;
-            bottom: 200px;
+            bottom: calc(200px + env(safe-area-inset-bottom));
             left: 20px;
             right: 20px;
             z-index: 20;
@@ -666,26 +687,48 @@
             <p class="auth-subtitle">スタッフ認証</p>
             
             <div class="pin-container">
-                <div class="pin-digit" id="pin1"></div>
-                <div class="pin-digit" id="pin2"></div>
-                <div class="pin-digit" id="pin3"></div>
-                <div class="pin-digit" id="pin4"></div>
+                <input type="tel" 
+                       id="pin1" 
+                       class="pin-input"
+                       pattern="[0-9]*" 
+                       inputmode="numeric"
+                       maxlength="1"
+                       autocomplete="off"
+                       oninput="authManager.handlePinInput(1, this.value)"
+                       onkeydown="authManager.handleKeyDown(event, 1)">
+                <input type="tel" 
+                       id="pin2" 
+                       class="pin-input"
+                       pattern="[0-9]*" 
+                       inputmode="numeric"
+                       maxlength="1"
+                       autocomplete="off"
+                       oninput="authManager.handlePinInput(2, this.value)"
+                       onkeydown="authManager.handleKeyDown(event, 2)">
+                <input type="tel" 
+                       id="pin3" 
+                       class="pin-input"
+                       pattern="[0-9]*" 
+                       inputmode="numeric"
+                       maxlength="1"
+                       autocomplete="off"
+                       oninput="authManager.handlePinInput(3, this.value)"
+                       onkeydown="authManager.handleKeyDown(event, 3)">
+                <input type="tel" 
+                       id="pin4" 
+                       class="pin-input"
+                       pattern="[0-9]*" 
+                       inputmode="numeric"
+                       maxlength="1"
+                       autocomplete="off"
+                       oninput="authManager.handlePinInput(4, this.value)"
+                       onkeydown="authManager.handleKeyDown(event, 4)">
             </div>
             
-            <div class="keypad">
-                <button class="keypad-btn" onclick="addPin('1')">1</button>
-                <button class="keypad-btn" onclick="addPin('2')">2</button>
-                <button class="keypad-btn" onclick="addPin('3')">3</button>
-                <button class="keypad-btn" onclick="addPin('4')">4</button>
-                <button class="keypad-btn" onclick="addPin('5')">5</button>
-                <button class="keypad-btn" onclick="addPin('6')">6</button>
-                <button class="keypad-btn" onclick="addPin('7')">7</button>
-                <button class="keypad-btn" onclick="addPin('8')">8</button>
-                <button class="keypad-btn" onclick="addPin('9')">9</button>
-                <button class="keypad-btn" onclick="clearPin()">×</button>
-                <button class="keypad-btn" onclick="addPin('0')">0</button>
-                <button class="keypad-btn" onclick="deletePin()">⌫</button>
-            </div>
+            <button id="authSyncBtn" class="auth-sync-button" onclick="authManager.syncPinCode()">
+                <span id="authSyncIcon">🔄</span>
+                <span id="authSyncLabel">PINコードを取得</span>
+            </button>
             
             <div class="auth-error" id="authError"></div>
         </div>
@@ -769,7 +812,7 @@
             <!-- 手動入力 -->
             <div style="
                 position: absolute;
-                bottom: 20px;
+                bottom: calc(20px + env(safe-area-inset-bottom));
                 left: 20px;
                 right: 20px;
                 background: rgba(255, 255, 255, 0.95);
@@ -1056,109 +1099,162 @@
             }
         }
         
-        // PINコード認証システム
+        // PINコード認証システム（シンプル化）
         class AuthManager {
             constructor() {
-                this.correctPin = null; // Google Sheetsから取得
+                this.correctPin = '1234'; // デフォルトPIN
                 this.currentPin = '';
                 this.maxAttempts = 3;
                 this.attempts = 0;
-                this.isLoading = false;
+                this.pinSynced = false;
                 
-                // 起動時にPINを取得
+                // 起動時に自動でPINを取得を試みる
                 this.fetchPinFromSheet();
             }
             
             async fetchPinFromSheet() {
-                this.isLoading = true;
                 try {
-                    // 既存のチケット検索と同じ方法でGoogle Apps Scriptから設定を取得
+                    if (!window.QR_SCANNER_CONFIG?.GOOGLE_APPS_SCRIPT_URL) {
+                        console.log('Google Apps Script URLが設定されていません');
+                        this.setSyncState('error');
+                        return;
+                    }
+                    
+                    this.setSyncState('syncing');
                     const url = `${window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL}?action=get_config&t=${Date.now()}`;
+                    console.log('PIN取得URL:', url);
                     
                     const response = await fetch(url);
                     const result = await response.json();
+                    console.log('取得結果:', result);
                     
                     if (result.success && result.config) {
-                        this.correctPin = result.config.pin || '1234';
+                        // PINを文字列として保存
+                        this.correctPin = String(result.config.pin || '1234');
                         this.maxAttempts = result.config.max_attempts || 3;
+                        this.pinSynced = true;
+                        this.setSyncState('synced');
+                        this.showSyncNotification('✅ PINコードを取得しました');
+                        console.log('設定されたPIN:', this.correctPin);
                     } else {
-                        this.correctPin = '1234';
-                        this.maxAttempts = 3;
+                        throw new Error('PIN取得失敗');
                     }
                 } catch (error) {
-                    // エラー時はデフォルト値を使用
-                    this.correctPin = '1234';
-                    this.maxAttempts = 3;
-                } finally {
-                    this.isLoading = false;
+                    console.log('デフォルトPINを使用:', error);
+                    this.correctPin = '1234';  // 確実に文字列として設定
+                    this.setSyncState('error');
+                    this.showSyncNotification('⚠️ デフォルトPIN(1234)を使用中');
+                    console.log('デフォルトPIN設定:', this.correctPin);
                 }
             }
             
-            addPin(digit) {
-                if (this.currentPin.length < 4) {
-                    this.currentPin += digit;
-                    this.updatePinDisplay();
+            handlePinInput(index, value) {
+                // 数字のみを許可
+                const cleanValue = value.replace(/[^0-9]/g, '').slice(0, 1);
+                const inputElement = document.getElementById(`pin${index}`);
+                
+                if (inputElement) {
+                    inputElement.value = cleanValue;
                     
-                    if (this.currentPin.length === 4) {
-                        setTimeout(() => this.validatePin(), 300);
+                    if (cleanValue) {
+                        inputElement.classList.add('filled');
+                        // 次のフィールドへ自動移動
+                        if (index < 4) {
+                            const nextInput = document.getElementById(`pin${index + 1}`);
+                            if (nextInput) nextInput.focus();
+                        }
+                    } else {
+                        inputElement.classList.remove('filled');
+                    }
+                    
+                    // 全体のPINを更新
+                    this.updateCurrentPin();
+                }
+            }
+            
+            handleKeyDown(event, index) {
+                const inputElement = document.getElementById(`pin${index}`);
+                
+                // Backspaceキーの処理
+                if (event.key === 'Backspace' && !inputElement.value && index > 1) {
+                    event.preventDefault();
+                    const prevInput = document.getElementById(`pin${index - 1}`);
+                    if (prevInput) {
+                        prevInput.focus();
+                        prevInput.value = '';
+                        prevInput.classList.remove('filled');
+                        this.updateCurrentPin();
                     }
                 }
+                
+                // エラー状態をクリア
+                if (inputElement.classList.contains('error')) {
+                    this.clearErrorState();
+                }
             }
             
-            deletePin() {
-                if (this.currentPin.length > 0) {
-                    this.currentPin = this.currentPin.slice(0, -1);
-                    this.updatePinDisplay();
+            updateCurrentPin() {
+                this.currentPin = '';
+                for (let i = 1; i <= 4; i++) {
+                    const input = document.getElementById(`pin${i}`);
+                    if (input) {
+                        this.currentPin += input.value;
+                    }
+                }
+                
+                // 4桁入力で自動検証
+                if (this.currentPin.length === 4) {
+                    setTimeout(() => this.validatePin(), 300);
                 }
             }
             
             clearPin() {
                 this.currentPin = '';
-                this.updatePinDisplay();
-                // エラーメッセージは残す（validatePinから呼ばれた場合）
-                // hideError()は手動でクリアボタンを押した時のみ
+                for (let i = 1; i <= 4; i++) {
+                    const input = document.getElementById(`pin${i}`);
+                    if (input) {
+                        input.value = '';
+                        input.classList.remove('filled', 'error');
+                    }
+                }
+                // 最初のフィールドにフォーカス
+                const firstInput = document.getElementById('pin1');
+                if (firstInput) firstInput.focus();
             }
             
-            clearPinWithError() {
-                this.currentPin = '';
-                this.updatePinDisplay();
+            clearErrorState() {
+                for (let i = 1; i <= 4; i++) {
+                    const input = document.getElementById(`pin${i}`);
+                    if (input) {
+                        input.classList.remove('error');
+                    }
+                }
                 this.hideError();
             }
             
-            updatePinDisplay() {
-                for (let i = 1; i <= 4; i++) {
-                    const pinElement = document.getElementById(`pin${i}`);
-                    if (i <= this.currentPin.length) {
-                        pinElement.textContent = '●';
-                        pinElement.classList.add('filled');
-                    } else {
-                        pinElement.textContent = '';
-                        pinElement.classList.remove('filled');
-                    }
-                }
-            }
-            
-            async validatePin() {
-                // 設定が読み込まれていない場合は待機
-                if (this.isLoading || !this.correctPin) {
-                    this.showError('設定を読み込み中です...');
-                    return;
-                }
+            validatePin() {
+                console.log('検証中 - 入力PIN:', this.currentPin, '正解PIN:', this.correctPin);
                 
-                // PINコードの比較（型も含めて厳密に）
+                // 文字列として比較（数値の場合も文字列に変換）
                 if (String(this.currentPin) === String(this.correctPin)) {
+                    console.log('認証成功！');
                     this.onAuthSuccess();
                 } else {
+                    console.log('認証失敗 - 不一致');
                     this.attempts++;
                     if (this.attempts >= this.maxAttempts) {
-                        this.showError(`認証に${this.maxAttempts}回失敗しました。アプリを再読み込みしてください。`);
+                        this.showError(`認証に${this.maxAttempts}回失敗しました。ページを再読み込みしてください。`);
                         this.lockInterface();
                     } else {
                         this.showError(`PINコードが違います。（残り${this.maxAttempts - this.attempts}回）`);
-                        // clearPinの前に少し待機して、エラーメッセージを表示
+                        // すべてのPINフィールドにエラー状態を適用
+                        for (let i = 1; i <= 4; i++) {
+                            const input = document.getElementById(`pin${i}`);
+                            if (input) input.classList.add('error');
+                        }
                         setTimeout(() => {
                             this.clearPin();
-                        }, 100);
+                        }, 500);
                     }
                 }
             }
@@ -1178,14 +1274,17 @@
                     window.dataSyncManager = new DataSyncManager();
                 }
                 
-                // QRスキャナーを初期化
-                if (typeof window.qrScanner === 'undefined') {
-                    window.qrScanner = new QRCodeScanner();
+                // QRスキャナーを初期化してカメラを自動起動
+                // QRScannerクラスはqr-scanner.jsで定義されている
+                if (typeof QRScanner !== 'undefined' && !window.qrScanner) {
+                    window.qrScanner = new QRScanner();
                 }
                 
-                // カメラを起動（認証成功後のみ）
+                // カメラを自動起動
                 setTimeout(() => {
-                    window.qrScanner.initCamera();
+                    if (window.qrScanner && window.qrScanner.initCamera) {
+                        window.qrScanner.initCamera();
+                    }
                 }, 100);
             }
             
@@ -1201,30 +1300,83 @@
             }
             
             lockInterface() {
-                // インターフェースをロック
-                const keypadButtons = document.querySelectorAll('.keypad-btn');
-                keypadButtons.forEach(btn => btn.disabled = true);
+                // すべてのPINフィールドをロック
+                for (let i = 1; i <= 4; i++) {
+                    const input = document.getElementById(`pin${i}`);
+                    if (input) {
+                        input.disabled = true;
+                    }
+                }
+            }
+            
+            // PIN同期機能
+            async syncPinCode() {
+                const syncBtn = document.getElementById('authSyncBtn');
+                if (syncBtn.classList.contains('syncing')) {
+                    return;
+                }
+                
+                await this.fetchPinFromSheet();
+            }
+            
+            setSyncState(state) {
+                const syncBtn = document.getElementById('authSyncBtn');
+                const syncIcon = document.getElementById('authSyncIcon');
+                const syncLabel = document.getElementById('authSyncLabel');
+                
+                if (!syncBtn) return;
+                
+                syncBtn.className = `auth-sync-button ${state}`;
+                
+                switch (state) {
+                    case 'syncing':
+                        syncIcon.textContent = '⏳';
+                        syncLabel.textContent = '取得中...';
+                        syncBtn.disabled = true;
+                        break;
+                        
+                    case 'synced':
+                        syncIcon.textContent = '✅';
+                        syncLabel.textContent = 'PIN取得済み';
+                        syncBtn.disabled = false;
+                        break;
+                        
+                    case 'error':
+                        syncIcon.textContent = '⚠️';
+                        syncLabel.textContent = 'PIN取得失敗(デフォルト使用)';
+                        syncBtn.disabled = false;
+                        break;
+                        
+                    default:
+                        syncIcon.textContent = '🔄';
+                        syncLabel.textContent = 'PINコードを取得';
+                        syncBtn.disabled = false;
+                        break;
+                }
+            }
+            
+            showSyncNotification(message) {
+                const errorElement = document.getElementById('authError');
+                if (errorElement) {
+                    errorElement.textContent = message;
+                    errorElement.style.color = message.includes('✅') ? '#4CAF50' : '#dc3545';
+                    errorElement.classList.add('show');
+                    setTimeout(() => {
+                        errorElement.classList.remove('show');
+                    }, 3000);
+                }
             }
         }
         
-        // グローバル関数（HTMLから呼び出される）
+        // グローバル変数
         let authManager;
-        
-        function addPin(digit) {
-            authManager.addPin(digit);
-        }
-        
-        function deletePin() {
-            authManager.deletePin();
-        }
-        
-        function clearPin() {
-            authManager.clearPinWithError();
-        }
 
         // アプリ初期化
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', () => {
             authManager = new AuthManager();
+            // 最初のPINフィールドにフォーカス
+            const firstPin = document.getElementById('pin1');
+            if (firstPin) firstPin.focus();
         });
     </script>
 </body>
