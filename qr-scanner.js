@@ -25,15 +25,15 @@
             get GAS_URL() {
                 return window.QR_SCANNER_CONFIG?.GOOGLE_APPS_SCRIPT_URL || '';
             },
-            // Google Sheets API設定（フォールバック用）
+            // Google Sheets API設定（環境変数から取得）
             get SPREADSHEET_ID() {
-                return window.QR_SCANNER_CONFIG?.GOOGLE_SHEETS?.SPREADSHEET_ID || '1HVGYDKFOIkhM26Hk73X4AeO-X__hQmKXB6eln3vxeDQ';
+                return window.QR_SCANNER_CONFIG?.GOOGLE_SHEETS?.SPREADSHEET_ID || null;
             },
             get SHEET_NAME() {
-                return window.QR_SCANNER_CONFIG?.GOOGLE_SHEETS?.SHEET_NAME || 'チケット管理';
+                return window.QR_SCANNER_CONFIG?.GOOGLE_SHEETS?.SHEET_NAME || null;
             },
             get API_KEY() {
-                return window.QR_SCANNER_CONFIG?.GOOGLE_SHEETS?.API_KEY || 'YOUR_GOOGLE_API_KEY_HERE';
+                return window.QR_SCANNER_CONFIG?.GOOGLE_SHEETS?.API_KEY || null;
             }
         }
     };
