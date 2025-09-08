@@ -901,7 +901,6 @@
     <script>
         // jsQRが読み込めない場合のフォールバック
         if (typeof jsQR === 'undefined') {
-            console.warn('Primary jsQR CDN failed, trying backup...');
             document.write('<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"><\/script>');
         }
     </script>
@@ -927,7 +926,6 @@
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then((registration) => {
-                        console.log('SW registered: ', registration);
                         
                         // インストールプロンプト処理
                         let deferredPrompt;
@@ -936,16 +934,13 @@
                             deferredPrompt = e;
                             
                             // インストールボタンを表示（将来の拡張用）
-                            console.log('PWA install prompt available');
                         });
                         
                         // インストール完了時
                         window.addEventListener('appinstalled', (evt) => {
-                            console.log('PWA was installed');
                         });
                     })
                     .catch((registrationError) => {
-                        console.log('SW registration failed: ', registrationError);
                     });
             });
         }
@@ -1131,18 +1126,15 @@
             async fetchPinFromSheet() {
                 try {
                     if (!window.QR_SCANNER_CONFIG?.GOOGLE_APPS_SCRIPT_URL) {
-                        console.log('Google Apps Script URLが設定されていません');
                         this.setSyncState('error');
                         return;
                     }
                     
                     this.setSyncState('syncing');
                     const url = `${window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL}?action=get_config&t=${Date.now()}`;
-                    console.log('PIN取得URL:', url);
                     
                     const response = await fetch(url);
                     const result = await response.json();
-                    console.log('取得結果:', result);
                     
                     if (result.success && result.config) {
                         // PINを文字列として保存
@@ -1151,16 +1143,13 @@
                         this.pinSynced = true;
                         this.setSyncState('synced');
                         this.showSyncNotification('✅ PINコードを取得しました');
-                        console.log('設定されたPIN:', this.correctPin);
                     } else {
                         throw new Error('PIN取得失敗');
                     }
                 } catch (error) {
-                    console.log('デフォルトPINを使用:', error);
                     this.correctPin = '1234';  // 確実に文字列として設定
                     this.setSyncState('error');
                     this.showSyncNotification('⚠️ デフォルトPIN(1234)を使用中');
-                    console.log('デフォルトPIN設定:', this.correctPin);
                 }
             }
             
@@ -1249,14 +1238,11 @@
             }
             
             validatePin() {
-                console.log('検証中 - 入力PIN:', this.currentPin, '正解PIN:', this.correctPin);
                 
                 // 文字列として比較（数値の場合も文字列に変換）
                 if (String(this.currentPin) === String(this.correctPin)) {
-                    console.log('認証成功！');
                     this.onAuthSuccess();
                 } else {
-                    console.log('認証失敗 - 不一致');
                     this.attempts++;
                     if (this.attempts >= this.maxAttempts) {
                         this.showError(`認証に${this.maxAttempts}回失敗しました。ページを再読み込みしてください。`);

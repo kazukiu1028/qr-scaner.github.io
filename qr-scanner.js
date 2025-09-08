@@ -38,67 +38,16 @@
         }
     };
 
-    // モックデータ（デモ用）
-    const MOCK_CUSTOMER_DATA = {
-        'cs_test_123456789': {
-            name: '田中 太郎',
-            email: 'tanaka@example.com',
-            phone: '090-1234-5678',
-            event: '夏祭りコンサート',
-            ticketType: 'VIP席',
-            quantity: 2,
-            amount: 15000,
-            purchaseDate: '2024-09-01 14:30',
-            status: 'paid'
-        },
-        'cs_test_987654321': {
-            name: '佐藤 花子',
-            email: 'sato@example.com',
-            phone: '080-9876-5432',
-            event: '秋の音楽フェス',
-            ticketType: '一般席',
-            quantity: 1,
-            amount: 8000,
-            purchaseDate: '2024-09-02 10:15',
-            status: 'paid'
-        },
-        'cs_test_555666777': {
-            name: '山田 次郎',
-            email: 'yamada@example.com',
-            phone: '070-5555-6666',
-            event: 'クリスマス特別公演',
-            ticketType: 'プレミアム席',
-            quantity: 4,
-            amount: 32000,
-            purchaseDate: '2024-09-03 16:45',
-            status: 'paid'
-        },
-        // チケット番号のテストデータ
-        'TKT-20240901-001': {
-            name: '山田 花子',
-            email: 'yamada.hanako@example.com',
-            phone: '080-1111-2222',
-            event: 'テストイベント',
-            ticketType: 'テスト席',
-            quantity: 1,
-            amount: 5000,
-            purchaseDate: '2024-09-04 10:00',
-            status: 'paid'
-        }
-    };
 
     // Google Sheets API関連の関数
     class SheetsAPI {
         static async getConfig() {
-            console.log('🔧 [DEBUG] getConfig呼び出し開始');
-            console.log('🔧 [DEBUG] QR_SCANNER_CONFIG:', window.QR_SCANNER_CONFIG);
             
             // Google Apps Scriptから設定を取得
             if (window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL && 
                 window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
                 try {
                     const url = `${window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL}?action=get_config`;
-                    console.log('📊 [API] 設定取得開始 - URL:', url);
                     
                     const response = await fetch(url, {
                         method: 'GET',
@@ -107,33 +56,22 @@
                         }
                     });
                     
-                    console.log('📊 [API] レスポンス受信:', {
-                        status: response.status,
-                        statusText: response.statusText,
-                        ok: response.ok,
-                        headers: Object.fromEntries(response.headers.entries())
-                    });
                     
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
                     }
                     
                     const responseText = await response.text();
-                    console.log('📊 [API] レスポンステキスト:', responseText);
                     
                     let data;
                     try {
                         data = JSON.parse(responseText);
                     } catch (parseError) {
-                        console.error('❌ [API] JSON解析エラー:', parseError);
-                        console.error('❌ [API] レスポンス内容:', responseText);
                         throw new Error(`JSON解析エラー: ${parseError.message}`);
                     }
                     
-                    console.log('📊 [API] 設定取得成功:', data);
                     
                     if (data.success && data.config) {
-                        console.log('✅ [API] 設定データが有効です:', data.config);
                         return {
                             success: true,
                             config: {
@@ -142,7 +80,6 @@
                             }
                         };
                     } else {
-                        console.warn('⚠️ [API] 設定データが不完全です:', data);
                         return {
                             success: false,
                             config: {
@@ -152,12 +89,6 @@
                         };
                     }
                 } catch (error) {
-                    console.error('❌ [API] 設定取得エラー:', error);
-                    console.error('❌ [API] エラー詳細:', {
-                        message: error.message,
-                        stack: error.stack,
-                        name: error.name
-                    });
                     return {
                         success: false,
                         config: {
@@ -169,12 +100,6 @@
             }
             
             // Google Apps Script URLが設定されていない場合
-            console.warn('⚠️ Google Apps Script URLが設定されていません');
-            console.warn('🔧 [DEBUG] 現在の設定:', {
-                hasConfig: !!window.QR_SCANNER_CONFIG,
-                hasUrl: !!(window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL),
-                url: window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL
-            });
             return {
                 success: false,
                 config: {
@@ -196,11 +121,9 @@
                         // データ取得成功
                         return result.data;
                     } else {
-                        console.warn('Ticket not found in Google Apps Script:', result.error);
                         return null;
                     }
                 } catch (error) {
-                    console.warn('Google Apps Script API failed, trying direct API:', error);
                     // フォールバックで直接APIを試行
                 }
             }
@@ -208,7 +131,6 @@
             // 2. Google Sheets API（フォールバック）
             try {
                 if (!CONFIG.SHEETS.API_KEY || CONFIG.SHEETS.API_KEY === 'YOUR_GOOGLE_API_KEY_HERE') {
-                    console.warn('Google Sheets API key not configured, using mock data');
                     return null;
                 }
                 
@@ -218,7 +140,6 @@
                 
                 const response = await fetch(url);
                 if (!response.ok) {
-                    console.warn(`Google Sheets API error: ${response.status}, falling back to mock data`);
                     throw new Error(`Google Sheets API error: ${response.status}`);
                 }
                 
@@ -257,10 +178,6 @@
                 data[header] = row[index] || '';
             });
             
-            // デバッグ用：データの内容を確認
-            console.log('Raw data from sheet:', data);
-            console.log('支払い状況:', data['支払い状況']);
-            console.log('入場状況:', data['入場状況']);
             
             // フォーマットして返却
             return {
@@ -301,10 +218,8 @@
                     });
                     
                     // no-corsモードでは response.json() が使えないが、リクエストは確実に送信される
-                    console.log('✅ Entry status update request sent');
                     return true;
                 } catch (error) {
-                    console.warn('Google Apps Script update failed:', error);
                     return false;
                 }
             }
@@ -320,7 +235,6 @@
                 const url = `${window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL}?action=partial_search&partial=${encodeURIComponent(partialNumber)}&t=${Date.now()}`;
                 
                 try {
-                    console.log('Searching ticket by partial number via Google Apps Script...');
                     
                     // CORSモードで試行（結果を取得するため）
                     const response = await fetch(url, {
@@ -497,7 +411,6 @@
         async checkCameraPermissions() {
             try {
                 const permissions = await navigator.permissions.query({name: 'camera'});
-                console.log('Camera permission state:', permissions.state);
                 
                 // HTTPS確認
                 if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
@@ -506,7 +419,6 @@
                 
                 return permissions.state;
             } catch (error) {
-                console.warn('Permission check failed:', error);
                 // 権限チェックに失敗しても続行
             }
         }
@@ -641,7 +553,6 @@
                 window.authManager.clearPin();
             }
             
-            console.log('🔒 認証画面に戻りました');
         }
         
         toggleCamera() {
@@ -743,7 +654,6 @@
                     }
                 }
             } catch (error) {
-                console.error('チケットデータの解析エラー:', error);
             }
         }
         
@@ -771,34 +681,28 @@
                 
                 // 1. まずキャッシュから高速検索
                 if (window.dataSyncManager) {
-                    console.log(`🔍 [CACHE] チケット番号検索開始: ${ticketNumber}`);
-                    const startTime = performance.now();
+                        const startTime = performance.now();
                     const cachedData = window.dataSyncManager.searchInCache(ticketNumber);
                     const cacheTime = performance.now() - startTime;
                     
                     if (cachedData) {
-                        console.log(`✅ [CACHE] 検索成功! ${cacheTime.toFixed(2)}ms - チケット: ${cachedData.name} (${cachedData.ticketType})`);
                         this.showTicketDetails(cachedData);
                         this.updateStatus('success', '✅ チケットが確認されました（キャッシュ）');
                         return;
                     } else {
-                        console.log(`❌ [CACHE] チケットが見つかりませんでした ${cacheTime.toFixed(2)}ms`);
                     }
                 }
                 
                 // 2. キャッシュにない場合はAPI検索
-                console.log(`🌐 [API] Google Apps Script検索開始: ${ticketNumber}`);
                 const apiStartTime = performance.now();
                 const ticketData = await SheetsAPI.getTicketData(ticketNumber);
                 const apiTime = performance.now() - apiStartTime;
                 
                 if (ticketData) {
-                    console.log(`✅ [API] 検索成功! ${apiTime.toFixed(2)}ms - チケット: ${ticketData.name} (${ticketData.ticketType})`);
                     this.showTicketDetails(ticketData);
                     this.updateStatus('success', '✅ チケットが確認されました（API）');
                 } else {
-                    // フォールバック: モックデータを確認
-                    await this.displayCustomerInfo(ticketNumber);
+                    this.showTicketInfoError(ticketNumber, 'チケットが見つかりません');
                 }
             } catch (error) {
                 console.error('チケット情報取得エラー:', error);
@@ -807,15 +711,8 @@
         }
         
         async displayCustomerInfo(sessionId) {
-            // モックデータから顧客情報を取得（フォールバック用）
-            const customerData = MOCK_CUSTOMER_DATA[sessionId];
-            
-            if (customerData) {
-                this.showCustomerDetails(customerData);
-                this.updateStatus('success', '✅ チケットが確認されました（テストデータ）');
-            } else {
-                this.showTicketInfoError(sessionId, 'チケットが見つかりません');
-            }
+            // 直接session_idでチケット検索を行う
+            this.showTicketInfoError(sessionId, 'チケットが見つかりません');
         }
         
         showTicketInfoError(identifier, errorMessage) {
@@ -1309,7 +1206,6 @@
                 
                 // 1. まずキャッシュから高速検索
                 if (window.dataSyncManager && window.dataSyncManager.ticketCache) {
-                    console.log(`🔍 [CACHE] 部分検索開始: "${partialNumber}" (キャッシュ件数: ${window.dataSyncManager.ticketCache.length}件)`);
                     const startTime = performance.now();
                     const matches = window.dataSyncManager.ticketCache.filter(ticket => 
                         ticket.ticketNumber && ticket.ticketNumber.toLowerCase().endsWith(partialNumber.toLowerCase())
@@ -1317,99 +1213,35 @@
                     const cacheTime = performance.now() - startTime;
                     
                     if (matches.length === 1) {
-                        console.log(`✅ [CACHE] 部分検索成功! ${cacheTime.toFixed(2)}ms - マッチ: ${matches[0].ticketNumber} (${matches[0].name})`);
                         this.showTicketDetails(matches[0]);
                         this.displayResult(matches[0].ticketNumber);
                         this.updateStatus('success', '✅ チケットが見つかりました（キャッシュ）');
                         return;
                     } else if (matches.length > 1) {
-                        console.log(`⚠️ [CACHE] 部分検索で複数マッチ ${cacheTime.toFixed(2)}ms - ${matches.length}件: ${matches.map(m => m.ticketNumber).join(', ')}`);
                         this.updateStatus('error', `❌ 複数のチケットが見つかりました。より詳しい番号を入力してください`);
                         return;
                     } else {
-                        console.log(`❌ [CACHE] 部分検索でマッチなし ${cacheTime.toFixed(2)}ms`);
                     }
                 }
                 
                 // 2. キャッシュにない場合はAPI検索
-                console.log(`🌐 [API] 部分検索API開始: "${partialNumber}"`);
                 const apiStartTime = performance.now();
                 const ticketData = await SheetsAPI.searchTicketByPartial(partialNumber);
                 const apiTime = performance.now() - apiStartTime;
                 
                 if (ticketData) {
-                    console.log(`✅ [API] 部分検索成功! ${apiTime.toFixed(2)}ms - チケット: ${ticketData.ticketNumber} (${ticketData.name})`);
                     this.showTicketDetails(ticketData);
                     this.displayResult(partialNumber);
                     this.updateStatus('success', '✅ チケットが見つかりました（API）');
                 } else {
-                    // フォールバック: モックデータから検索
-                    this.searchMockDataByPartial(partialNumber);
+                    this.updateStatus('error', `❌ 下4桁「${partialNumber}」に一致するチケットが見つかりません`);
                 }
                 
             } catch (error) {
-                // フォールバック: モックデータから検索
-                this.searchMockDataByPartial(partialNumber);
+                this.updateStatus('error', `❌ 検索中にエラーが発生しました: ${error.message}`);
             }
         }
         
-        searchMockDataByPartial(partialNumber) {
-            const mockTickets = this.getMockTickets();
-            const matches = mockTickets.filter(ticket => 
-                ticket.ticketNumber.toLowerCase().slice(-partialNumber.length) === partialNumber.toLowerCase()
-            );
-            
-            if (matches.length === 1) {
-                this.showTicketDetails(matches[0]);
-                this.displayResult(matches[0].ticketNumber);
-                this.updateStatus('success', '✅ チケットが見つかりました（テストデータ）');
-            } else if (matches.length > 1) {
-                this.updateStatus('error', `❌ 複数のチケットが見つかりました。より詳しい番号を入力してください`);
-            } else {
-                this.updateStatus('error', `❌ 下4桁「${partialNumber}」に一致するチケットが見つかりません`);
-            }
-        }
-        
-        getMockTickets() {
-            return [
-                {
-                    name: '田中太郎',
-                    email: 'tanaka@example.com',
-                    phone: '090-1234-5678',
-                    event: '夏祭りコンサート',
-                    ticketType: 'VIP席',
-                    ticketNumber: 'TKT-20250904-0001',
-                    amount: 15000,
-                    purchaseDate: '2024-09-01 14:30',
-                    paymentStatus: '支払い完了',
-                    entryStatus: '未入場'
-                },
-                {
-                    name: '佐藤花子',
-                    email: 'sato@example.com', 
-                    phone: '080-9876-5432',
-                    event: '秋の音楽フェス',
-                    ticketType: '一般席',
-                    ticketNumber: 'TKT-20250904-0002',
-                    amount: 8000,
-                    purchaseDate: '2024-09-02 10:15',
-                    paymentStatus: '支払い完了',
-                    entryStatus: '未入場'
-                },
-                {
-                    name: '山田次郎',
-                    email: 'yamada@example.com',
-                    phone: '070-5555-6666',
-                    event: 'クリスマス特別公演',
-                    ticketType: 'プレミアム席',
-                    ticketNumber: 'TKT-20250904-e2de',
-                    amount: 12000,
-                    purchaseDate: '2024-09-03 16:45',
-                    paymentStatus: '支払い完了',
-                    entryStatus: '未入場'
-                }
-            ];
-        }
     }
 
     // jsQRライブラリを動的に読み込む関数
@@ -1426,19 +1258,15 @@
 
         for (const url of cdnUrls) {
             try {
-                console.log(`Trying to load jsQR from: ${url}`);
                 await loadScript(url);
                 
                 if (typeof jsQR !== 'undefined') {
-                    console.log('✅ jsQR loaded successfully');
                     return true;
                 }
             } catch (error) {
-                console.warn(`Failed to load jsQR from ${url}:`, error);
             }
         }
 
-        console.error('❌ All jsQR CDN attempts failed');
         return false;
     }
 
@@ -1466,7 +1294,6 @@
         if (!jsQRLoaded) {
             const errorMsg = 'QRコード読み取りライブラリの読み込みに失敗しました。ページを再読み込みしてください。';
             alert(errorMsg);
-            console.error(errorMsg);
             return;
         }
 

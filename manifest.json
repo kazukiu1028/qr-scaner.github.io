@@ -1,6 +1,6 @@
 {
-  "name": "Pellamori チケット確認アプリ",
-  "short_name": "Pellamori",
+  "name": "ペラもり チケット確認アプリ",
+  "short_name": "ペラもりQR",
   "description": "QRコードでチケットを確認・管理するアプリ",
   "start_url": "/",
   "display": "standalone",
