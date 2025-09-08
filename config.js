@@ -1,7 +1,7 @@
 // Pellamori QRスキャナー設定
 const CONFIG = {
   // Google Apps Script API設定
-  GAS_API_URL: 'https://script.google.com/macros/s/AKfycbzqvQsMFqlCuPgqtixvngYBovswjApld_UOuEr2iY78jjEZA1WXamOPdbjMV5kqux4O/exec', // ←実際のGAS URLに変更
+  GAS_API_URL: 'https://script.google.com/macros/s/AKfycbwRNwcRIXs97iiIeWJEFnb7JlZviSpFZduWaap-Hlgbzh1vB5PzHi7NmOsYDy361WMD/exec', // ←実際のGAS URLに変更
   
   // チケット検証API設定
   TICKET_API_URL: 'https://script.google.com/macros/s/AKfycbzqvQsMFqlCuPgqtixvngYBovswjApld_UOuEr2iY78jjEZA1WXamOPdbjMV5kqux4O/exec',
