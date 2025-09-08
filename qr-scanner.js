@@ -20,21 +20,9 @@
             SUCCESS: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBzCMz+8=',
             VOLUME: 0.3
         },
-        SHEETS: {
-            // Google Apps Script Web App URL
-            get GAS_URL() {
-                return window.QR_SCANNER_CONFIG?.GOOGLE_APPS_SCRIPT_URL || '';
-            },
-            // Google Sheets API設定（環境変数から取得）
-            get SPREADSHEET_ID() {
-                return window.QR_SCANNER_CONFIG?.GOOGLE_SHEETS?.SPREADSHEET_ID || null;
-            },
-            get SHEET_NAME() {
-                return window.QR_SCANNER_CONFIG?.GOOGLE_SHEETS?.SHEET_NAME || null;
-            },
-            get API_KEY() {
-                return window.QR_SCANNER_CONFIG?.GOOGLE_SHEETS?.API_KEY || null;
-            }
+        // Google Apps Script Web App URL（全ての処理はGAS経由）
+        get GAS_URL() {
+            return window.QR_SCANNER_CONFIG?.GOOGLE_APPS_SCRIPT_URL || '';
         }
     };
 
@@ -114,7 +102,7 @@
             if (window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
                 try {
                     // API呼び出し中
-                    const response = await fetch(`${CONFIG.SHEETS.GAS_URL}?ticket_number=${encodeURIComponent(ticketNumber)}`);
+                    const response = await fetch(`${CONFIG.GAS_URL}?ticket_number=${encodeURIComponent(ticketNumber)}`);
                     const result = await response.json();
                     
                     if (result.success && result.data) {
@@ -128,46 +116,8 @@
                 }
             }
             
-            // 2. Google Sheets API（フォールバック）
-            try {
-                if (!CONFIG.SHEETS.API_KEY || CONFIG.SHEETS.API_KEY === 'YOUR_GOOGLE_API_KEY_HERE') {
-                    return null;
-                }
-                
-                // Sheets API使用
-                const range = `${CONFIG.SHEETS.SHEET_NAME}!A:M`;
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEETS.SPREADSHEET_ID}/values/${range}?key=${CONFIG.SHEETS.API_KEY}`;
-                
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`Google Sheets API error: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                const rows = data.values || [];
-                
-                if (rows.length === 0) {
-                    return null;
-                }
-                
-                // ヘッダー行を取得
-                const headers = rows[0];
-                
-                // チケット番号で検索
-                for (let i = 1; i < rows.length; i++) {
-                    const row = rows[i];
-                    const ticketNumberIndex = headers.indexOf('チケット番号');
-                    
-                    if (ticketNumberIndex !== -1 && row[ticketNumberIndex] === ticketNumber) {
-                        return this.parseRowData(headers, row);
-                    }
-                }
-                
-                return null;
-            } catch (error) {
-                console.error('All Google APIs failed:', error);
-                throw error;
-            }
+            // Google Sheets APIフォールバックは削除（全てGAS経由で処理）
+            return null;
         }
         
         static parseRowData(headers, row) {
