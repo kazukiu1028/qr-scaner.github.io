@@ -36,11 +36,9 @@ camera-test.html
 test-qr.html
 
 # ドキュメント（機密情報含む可能性）
-SETUP.md
-CONFIG.md
-WORDPRESS-INTEGRATION.md
-deployment-guide.md
-*.config.md
+# README.md以外のすべてのMDファイルを除外
+*.md
+!README.md
 docs/
 
 # 環境変数ファイル
@@ -91,8 +89,5 @@ Screenshot*.jpeg
 *.png
 *.gif
 
-# 設定・ドキュメント
-README.md
-INSTALL.md
-deployment-notes.md
+# 設定ファイル
 *.config.js
