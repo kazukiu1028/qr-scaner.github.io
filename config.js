@@ -1,20 +1,40 @@
-/**
- * QRスキャナー設定ファイル
- * 
- * 使用方法:
- * 1. Google Cloud ConsoleでGoogle Sheets APIを有効化
- * 2. APIキーを作成（制限: Google Sheets API のみ）
- * 3. 下記のYOUR_GOOGLE_API_KEY_HEREを実際のAPIキーに置き換え
- */
-
-window.QR_SCANNER_CONFIG = {
-    // Google Apps Script Web AppのURL（デプロイ後に取得）
-    GOOGLE_APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwTH88KS4Tk21leripwl4v219DUT1G5XqptUe66jlv15MJVlIakm3V8svfKe8XBfDOJRg/exec',
-    
-    // 従来のGoogle Sheets API設定（フォールバック用）
-    GOOGLE_SHEETS: {
-        API_KEY: 'YOUR_GOOGLE_API_KEY_HERE',
-        SPREADSHEET_ID: '1HVGYDKFOIkhM26Hk73X4AeO-X__hQmKXB6eln3vxeDQ',
-        SHEET_NAME: 'チケット管理'
-    }
+// Pellamori QRスキャナー設定
+const CONFIG = {
+  // Google Apps Script API設定
+  GAS_API_URL: 'https://script.google.com/macros/s/AKfycbzSYgIt1MmaCHy14DBgc2qQOf1tbkjZBfPz0LI9zBBgqgHkLS0koRTJhj9aCOueVGwJ/exec', // ←実際のGAS URLに変更
+  
+  // チケット検証API設定
+  TICKET_API_URL: 'https://script.google.com/macros/s/AKfycbzSYgIt1MmaCHy14DBgc2qQOf1tbkjZBfPz0LI9zBBgqgHkLS0koRTJhj9aCOueVGwJ/exec',
+  
+  // アプリケーション設定
+  APP_NAME: 'Pellamori QRスキャナー',
+  APP_VERSION: '1.0.0',
+  
+  // QRスキャナー設定
+  SCANNER_CONFIG: {
+    fps: 10,
+    qrbox: { width: 250, height: 250 },
+    aspectRatio: 1.0
+  },
+  
+  // UI設定
+  THEME: {
+    primary: '#e91e63',
+    secondary: '#2196f3',
+    success: '#4caf50',
+    error: '#f44336',
+    warning: '#ff9800'
+  },
+  
+  // デバッグ設定
+  DEBUG: false,
+  
+  // キャッシュ設定
+  CACHE_ENABLED: true,
+  CACHE_DURATION: 300000 // 5分
 };
+
+// 設定の検証
+if (typeof window !== 'undefined') {
+  console.log('Pellamori Config loaded:', CONFIG.APP_NAME, 'v' + CONFIG.APP_VERSION);
+}

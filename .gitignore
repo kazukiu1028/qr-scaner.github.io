@@ -64,6 +64,9 @@ pin-config.js
 google-apps-script/
 *.gs
 
+# WordPress integration files (sensitive configuration)
+wordpress-stripe-fix.php
+
 # GitHub関連テンプレート
 .github/
 
@@ -73,3 +76,23 @@ google-apps-script/
 coverage/
 dist/
 build/
+
+# 追加WordPress関連ファイル
+function.php
+functions.php
+send-email.php
+.htaccess
+
+# スクリーンショット・画像
+Screenshot*.png
+Screenshot*.jpeg
+*.jpeg
+*.jpg
+*.png
+*.gif
+
+# 設定・ドキュメント
+README.md
+INSTALL.md
+deployment-notes.md
+*.config.js
