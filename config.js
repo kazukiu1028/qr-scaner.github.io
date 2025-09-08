@@ -1,13 +1,10 @@
-// Pellamori QRスキャナー設定
+// ペラもりQRスキャナー設定
 const CONFIG = {
-  // Google Apps Script API設定
-  GAS_API_URL: 'https://script.google.com/macros/s/AKfycbzqvQsMFqlCuPgqtixvngYBovswjApld_UOuEr2iY78jjEZA1WXamOPdbjMV5kqux4O/exec', // ←実際のGAS URLに変更
-  
-  // チケット検証API設定
-  TICKET_API_URL: 'https://script.google.com/macros/s/AKfycbzqvQsMFqlCuPgqtixvngYBovswjApld_UOuEr2iY78jjEZA1WXamOPdbjMV5kqux4O/exec',
+  // Google Apps Script統合API設定（全機能対応）
+  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbzqvQsMFqlCuPgqtixvngYBovswjApld_UOuEr2iY78jjEZA1WXamOPdbjMV5kqux4O/exec',
   
   // アプリケーション設定
-  APP_NAME: 'Pellamori QRスキャナー',
+  APP_NAME: 'ペラもりQRスキャナー',
   APP_VERSION: '1.0.0',
   
   // QRスキャナー設定
@@ -34,7 +31,10 @@ const CONFIG = {
   CACHE_DURATION: 300000 // 5分
 };
 
-// 設定の検証
+// アプリケーション用グローバル設定
 if (typeof window !== 'undefined') {
-  console.log('Pellamori Config loaded:', CONFIG.APP_NAME, 'v' + CONFIG.APP_VERSION);
+  // QRスキャナー用の設定を統合
+  window.QR_SCANNER_CONFIG = {
+    GOOGLE_APPS_SCRIPT_URL: CONFIG.API_ENDPOINT
+  };
 }
