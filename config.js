@@ -1,7 +1,7 @@
 // ペラもりQRスキャナー設定
 const CONFIG = {
   // Google Apps Script統合API設定（全機能対応）
-  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbzqvQsMFqlCuPgqtixvngYBovswjApld_UOuEr2iY78jjEZA1WXamOPdbjMV5kqux4O/exec',
+  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbzNSkth0Fukiu4mXTgFcL11lJDoC4id_x4ThIJXFz4n6L3jdm0d8sy4rpBy4tEWp3zn/exec',
   
   // アプリケーション設定
   APP_NAME: 'ペラもりQRスキャナー',

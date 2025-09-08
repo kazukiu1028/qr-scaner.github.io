@@ -30,71 +30,38 @@
     // Google Sheets API関連の関数
     class SheetsAPI {
         static async getConfig() {
-            
-            // Google Apps Scriptから設定を取得
-            if (window.QR_SCANNER_CONFIG && window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL && 
-                window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-                try {
-                    const url = `${window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL}?action=get_config`;
-                    
-                    const response = await fetch(url, {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
-                    }
-                    
-                    const responseText = await response.text();
-                    
-                    let data;
-                    try {
-                        data = JSON.parse(responseText);
-                    } catch (parseError) {
-                        throw new Error(`JSON解析エラー: ${parseError.message}`);
-                    }
-                    
-                    
-                    if (data.success && data.config) {
-                        return {
-                            success: true,
-                            config: {
-                                pin: data.config.pin || '1234',
-                                max_attempts: data.config.max_attempts || 3
-                            }
-                        };
-                    } else {
-                        return {
-                            success: false,
-                            config: {
-                                pin: '1234',
-                                max_attempts: 3
-                            }
-                        };
-                    }
-                } catch (error) {
-                    return {
-                        success: false,
-                        config: {
-                            pin: '1234',
-                            max_attempts: 3
-                        }
-                    };
-                }
+            // Google Apps Script URLが設定されていない場合は即座にnullを返す
+            if (!window.QR_SCANNER_CONFIG?.GOOGLE_APPS_SCRIPT_URL) {
+                return null;
             }
             
-            // Google Apps Script URLが設定されていない場合
-            return {
-                success: false,
-                config: {
-                    pin: '1234',
-                    max_attempts: 3
+            try {
+                const url = `${window.QR_SCANNER_CONFIG.GOOGLE_APPS_SCRIPT_URL}?action=get_config`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            };
+                
+                const data = await response.json();
+                
+                if (data.success && data.config) {
+                    return {
+                        success: true,
+                        config: data.config
+                    };
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('設定取得エラー:', error);
+                return null;
+            }
         }
         
         static async getTicketData(ticketNumber) {
