@@ -91,3 +91,10 @@ Screenshot*.jpeg
 
 # 設定ファイル
 *.config.js
+
+# プライバシーポリシー・法務文書
+*.txt
+PRIVACY_POLICY*
+
+# Cloudflare Worker（インフラ詳細）
+cloudflare-worker/
